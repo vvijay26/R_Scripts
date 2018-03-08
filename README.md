@@ -1,2 +1,2 @@
 # R_Scripts
-R Scripts for practice
+Data Analysis of publicly available datasets using R
