@@ -1,2 +1,2 @@
-# Analysis of publicly available data of Lending Club using EDA to determine loans that have higher chances of default
-EDA - Exploratory Data Analysis
+# Analysis of publicly available data using EDA to determine loans that have higher chances of default
+EDA (Exploratory Data Analysis) of data from Lendingclub.com
