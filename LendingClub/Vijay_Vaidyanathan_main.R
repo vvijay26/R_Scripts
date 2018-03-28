@@ -1,7 +1,7 @@
 #Clear the Environment - To avoid any testing issues.
 rm(list = ls())
 
-#Include stringr, dplyr and plyr libraries to perform stting & data manipulations
+#Include stringr, dplyr and plyr libraries to perform string & data manipulations
 #Include ggplot2 to create plots. These packages can be installed using
 # install.packages("ggplot2"), install.packages("chron") etc.
 library(stringr) #string manipulations
@@ -23,14 +23,14 @@ loan <-
            stringsAsFactors = TRUE)
 
 #Data cleaning :- 
-# There are no header, footers, summary etc. in the file
+# There are no header, footers, summary rows etc. in the file
 # None of the column names are missing and all are meaningful names
 colnames(loan)
 # Unnecessary columns - Columns where each instance is NA , Blanks etc.
 # These columns have no relevance to the analysis, hence remove.
 library(data.table)
 temp <- as.data.table(loan)
-loan_data <- temp[,which(unlist(lapply(temp, function(x)!all(is.na(x))))),with=F]
+loan_data <- temp[,which(unlist(lapply(temp, function(x)!all(is.na(x))))),with=F] #Remove all columns with everything NA
 
 ncol(loan_data) #Down to 57 columns (manageable as compared to 111 column dataset)
 
@@ -49,23 +49,44 @@ str(loan_data)
 # important since otherwise lower case and upper case may be interpreted as different
 # when they are actually the same.
 
+#Identify columns containing multiple data values.
+#The information is for loans between 2007 to 2011 
+#but the issue_d column date format needs to be corrected 
+#as its not in the correct format
+# The column currently reflects Dec 2011 as Dec-11, lets split it into two columns
+# so we can analyze the data by months and years separately if required.
+
+#Split the Issue_d into Date and Time (Also convert YY to YYYY etc.)
+loan_data$issue_month <- str_split_fixed(loan_data$issue_d, "-", 2)[, 2]
+loan_data$issue_year <- as.numeric(str_split_fixed(loan_data$issue_d, "-", 2)[, 1])
+
+loan_data$issue_year <-
+  as.numeric(ifelse(
+    loan_data$issue_year > 9,
+    paste("20",str_split_fixed(loan_data$issue_d, "-", 2)[, 1],sep=""),
+    paste("200",str_split_fixed(loan_data$issue_d, "-", 2)[, 1],sep="")
+  ))
+
+#Remove issue_d column as its no longer needed
+loan_data$issue_d <- NULL
+
 # Lets traverse each through each column and check for data issues and clean accordingly
 # id - 
-sum(is.na(loan_data$id),length(which(loan_data$id == ""))) 
+sum(is.na(loan_data$id),length(which(loan_data$id == ""))) #No issues
 # member_id
-sum(is.na(loan_data$member_id),length(which(loan_data$member_id == "")))
+sum(is.na(loan_data$member_id),length(which(loan_data$member_id == "")))#No issues
 # loan_amnt
-sum(is.na(loan_data$loan_amnt),length(which(loan_data$loan_amnt == "")))
+sum(is.na(loan_data$loan_amnt),length(which(loan_data$loan_amnt == "")))#No issues
 # funded_amnt
-sum(is.na(loan_data$funded_amnt),length(which(loan_data$funded_amnt == "")))
+sum(is.na(loan_data$funded_amnt),length(which(loan_data$funded_amnt == "")))#No issues
 # funded_amnt_inv
-sum(is.na(loan_data$funded_amnt_inv),length(which(loan_data$funded_amnt_inv == "")))
+sum(is.na(loan_data$funded_amnt_inv),length(which(loan_data$funded_amnt_inv == "")))#No issues
 # term
-sum(is.na(loan_data$term),length(which(loan_data$term == "")))
+sum(is.na(loan_data$term),length(which(loan_data$term == "")))#No issues
 # int_rate
-sum(is.na(loan_data$int_rate),length(which(loan_data$int_rate == "")))
+sum(is.na(loan_data$int_rate),length(which(loan_data$int_rate == "")))#No issues
 # installment
-sum(is.na(loan_data$installment),length(which(loan_data$installment == "")))
+sum(is.na(loan_data$installment),length(which(loan_data$installment == "")))#No issues
 # grade
 sum(is.na(loan_data$grade),length(which(loan_data$grade == "")))
 summary(loan_data$grade) #no issues.
@@ -94,7 +115,7 @@ summary(loan_data$pymnt_plan) #There is a single variable "n" in this column,
 # we can remove this whole column - disguised missing value case.
 loan_data$pymnt_plan <- NULL
 
-# url,desc - no data cleaning required.
+# url,desc - no data cleaning required.visual check is good enough.
 
 # purpose
 summary(loan_data$purpose) #no issues. no issues with case of letters etc.
@@ -135,19 +156,26 @@ which(is.na(loan$out_prncp)) # none of the values are NA , summary looks fine.
 # total_pymnt - #Payment done by the individual till now. Higher it is, lower chance of default.
 summary(loan$total_pymnt)
 which(is.na(loan$total_pymnt)) # none of the values are NA , summary looks fine. 
-
+# inq_last_6mths
+summary(loan_data$inq_last_6mths) #looks ok. This is one of the key fields usually in analyzing credit risk
 
 #Validated the below fields with a cursory look in the file and we see some NA's etc, which could
 # actually be valid (since we wont have a months since last deliquency if someone has never been 
 # deliquent in the first place etc.)
 
-# We take a judicious call to ignore certain fields from detailed analysis because as we know, 
-# EDA will never stop, we need to take a judicious call at a poiint, beyond which, lot of hours of
-# analyis effort would be required for marginal improvements in analysis output (efficiency will 
+# We do a summary of the whole file and validate the rest of fields using cursory look
+summary(loan_data)
+
+# Overall rest of the columns look ok. 
+# We take a judicious call to ignore these fields from detailed analysis because as we know, 
+# EDA will never stop, we need to take a judicious call at a poiint, beyond which, 
+# additional analysis hours do not justify the marginal improvements in output (efficiency will 
 # become very low)
 
-# earliest_cr_line
-# inq_last_6mths
+#The following fields are being left as-is 
+#(later during plots if we realize any issues we can come back to these and perform additional 
+# data cleaning as necessary) :- 
+-----
 # mths_since_last_delinq, 
 # mths_since_last_record
 # open_acc
@@ -177,23 +205,10 @@ which(is.na(loan$total_pymnt)) # none of the values are NA , summary looks fine.
 # tax_liens
 
 
-#The information is for loans between 2007 to 2011 
-#but the issue_d column date format needs to be corrected 
-#as its not in the correct format
-# The column currently reflects Dec 2011 as Dec-11, lets split it into two columns
-# so we can analyze the data by months and years separately if required.
-
-#Split the Request and Drop timestamp columns into Date and Time (Also convert YY to YYYY etc.)
-loan_data$issue_month <-   str_split_fixed(loan_data$issue_d, "-", 2)[, 1]
-loan_data$issue_year<- paste("20",str_split_fixed(loan_data$issue_d, "-", 2)[, 2],sep="")
-
-#Remove issue_d column as its no longer needed
-loan_data$issue_d <- NULL
-
-
 # I) Univariate Analysis
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-#Lets do a summary of the dataframe and determine if there are any outliers
+#Lets do a summary of the dataframe and determine again to determine if there are any outliers
 # This might also give some inputs around need for derived metrics, if any.
 summary(loan_data)
 
@@ -208,6 +223,102 @@ summary(loan_data)
 # 8) Ordered categorical variable - pub_rec_bankruptcies seems to be an 
 #    interesting field and looks ok (no outliers)
 
+# Lets create few histograms of key variables and determine their trend (Univariate Analysis)
+
+# The primary objective is to understand the driving factors
+# behind loan default, i.e. the variables which are strong indicators of default.  
+# The company can utilise this knowledge for its portfolio and risk assessment for future loans. 
+
+# For purposes of meaningful analysis and more manageble data, lets remove the columns
+# that might not usually have some impact on the default status (Such as id, url etc.)
+# Also, lets filter the file to remove In progress loans, we only want to analyze loans
+# that are either paid in full (loan_status = "Fully Paid") or defaulted ("Charged Off").
+
+loan_data_temp <- filter(loan_data,loan_status == "Fully Paid" | loan_status == "Charged Off") #Removing "Current" Loans
+
+# Following fields are selected for analysis :- Based on analysis of public websites which have
+# data on how banks, p2p lends etc. along with info from the data dictionary
+
+#----BUSINESS UNDERSTANDING---------#
+# Reasoning on why the specific data point is selected for analysis is given in parenthesis
+
+# funded_amnt (Amount of loan funded)
+# term (3 vs 5 year repayment period)
+# int_rate (higher interest rate usually signals lower credit score)
+# installment (size of the installment)
+# grade (loan grade assigned by LendingClub)
+# sub_grade (loan subgrade assigned by LendingClub (may be based on credit score etc.))
+# emp_length (higher the emp length signals higher stability)
+# home_ownership (Rent vs. Mortgage is expected to have a bearing on the loan_status)
+# annual_inc (annual income)
+# verification_status (status regarding verification of annual income)
+# loan_status (defaulted vs. payments in progress)
+# purpose ( purpose for the loan - car, house etc.)
+# addr_state (To determine if defaults are originating from specific states)
+# dti (explained in comments above)
+# delinq_2yrs (higher the deliquency, probably higher chances of default)
+# inq_last_6mths ( higher inquires usually signal lower credit scores due to hard inquiries etc.)
+# mths_since_last_delinq (higher this period signals lower chance of default)
+# open_acc ( higher number of credit lines signals higher utilization of credit, thus higher chance of default)
+# pub_rec ( derogatory records - such as missed payments etc. - lowers credit score)
+# revol_bal ( how much of credit is revolving - that is credit line - pending payments)
+# revol_util (how much of credit line is utilized, probably higher % is not good)
+# earliest_cr_line (higher age of credit history is usually a positive for credit score)
+# issue_year (derived column from issue_d, used to determine age of credit history from loan date)
+
+loan_data_final <- loan_data_temp[,c('funded_amnt','term','int_rate','installment','grade','sub_grade','emp_length','home_ownership','annual_inc','verification_status','loan_status','purpose','addr_state','dti','delinq_2yrs','inq_last_6mths','mths_since_last_delinq','open_acc','pub_rec','revol_bal','revol_util','earliest_cr_line','issue_year')]
+
+#Lets just extract the year from the earliest_cr_line field (since its having different formats
+# such as MMM-YY or Y-MMM etc., lets use regex to extract numbers, which will be the year)
+# if the number is >10, we can assume the century to be 1900, else century is 2000
+
+loan_data_final$cr_line_year <- gsub("[^0-9]", "", loan_data_final$earliest_cr_line) #Substitute all characters, "-" etc. with ""
+
+loan_data_final$issue_year <- as.numeric(loan_data_final$issue_year) #Convert to numeric to perform numeric functions
+
+loan_data_final$cr_line_year <- as.numeric(loan_data_final$cr_line_year) #Convert to numeric to perform numeric functions
+
+loan_data_final$cr_line_year <-
+  ifelse(
+    loan_data_final$cr_line_year > 9,
+    paste("19",loan_data_final$cr_line_year,sep=""),
+    paste("200",loan_data_final$cr_line_year,sep="")
+  )
+loan_data_final$cr_line_year <- as.numeric(loan_data_final$cr_line_year)  #Convert to numeric to perform numeric functions
+
+#Validate the lowest and highest credit line years
+max(loan_data_final$cr_line_year) #2008, looks ok.
+min(loan_data_final$cr_line_year) #1946, looks ok.
+
+
+# Now, we are down to 25 fields from the initial 111 fields, lets begin UNIVARIATE analysis
+
+# Next step is to determine a derived column - issue_year minus earliest_cr_line (in Years)
+# We can categorize these into <5 years, 5-10 years, 10-20 years and >20 years. This is being
+# done to bucket the credit history into different sets, for drawing insights from analysis
+loan_data_final$age_of_credit_history <- loan_data_final$issue_year - loan_data_final$cr_line_year
+
+#Bucket age of credit history using ifelse statements
+
+loan_data_final$credit_history_buckets <-
+  ifelse(
+    loan_data_final$age_of_credit_history <= 5,
+    "0 - 5 Years",
+    ifelse (
+      loan_data_final$age_of_credit_history > 5 & loan_data_final$age_of_credit_history <= 10,
+      "5-10 Years",
+      ifelse (
+        loan_data_final$age_of_credit_history > 10 & loan_data_final$age_of_credit_history <= 15,
+        "10-15 Years",
+        ifelse (
+          loan_data_final$age_of_credit_history > 15 & loan_data_final$age_of_credit_history <= 20,
+          "15-20 Years",
+          ifelse (loan_data_final$age_of_credit_history > 20 &
+                    loan_data_final$age_of_credit_history <= 25, "20-25 Years", "> 25 Years")
+        )
+      )
+    )
+  )
 
 
 #----********-------------**********--END OF CASE STUDY------*****-------**************-------***
