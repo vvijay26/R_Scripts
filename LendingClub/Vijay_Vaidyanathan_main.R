@@ -323,6 +323,22 @@ loan_data_final$credit_history_buckets <-
 
 #Lets create few bar plots to analyze the effect of fields on loan_status (segmented univariate)
 
+
+#Histogram plots showing the number of loans for each grade, status and credit age
+ggplot(data = loan_data_final, aes(
+  x = factor(grade),
+  fill = factor(credit_history_buckets)
+)) +
+  geom_bar(alpha = 0.7, position = "dodge")+ 
+  xlab("Loan Status") +ylab("Count") +labs(fill = 'Credit History Range') +facet_grid(.~loan_data_final$loan_status, scales = "free_x")
+
+#A Histogram plot showing the number of loans for each subgrade for each loan_status 
+ggplot(loan_data_final, aes(x = sub_grade)) + geom_histogram(binwidth = 1,
+                                                             fill = "black",
+                                                             ,
+                                                             stat = "count") +
+  facet_grid(. ~ loan_data_final$loan_status, scales = "free_x")
+
 ggplot(data = loan_data_final, aes(
   x = factor(loan_status),
   fill = factor(loan_data_final$sub_grade)
@@ -348,7 +364,7 @@ loan_grouped_by_grade <- loan_grouped_by_grade[,c(2,1,3)] # Reorder columns to e
 loan_grouped_by_grade <- spread(loan_grouped_by_grade, Loan_status, Count) #Use spread to convert to wide format to calculate ratio
 
 #Add a ratio column (%), higher ration implies that grade historically has higher chance of default
-loan_grouped_by_grade$Ratio_of_default_to_paidoff <- round(100 * loan_grouped_by_grade$`Charged Off`/loan_grouped_by_grade$`Fully Paid`,2)
+loan_grouped_by_grade$Ratio_of_default_to_paidoff <- round(100 * loan_grouped_by_grade$`Charged Off`/(loan_grouped_by_grade$`Fully Paid`+loan_grouped_by_grade$`Charged Off`),2)
 
 #Sort the loan data grouped by grade in descending order of default to paid off ratio
 loan_grouped_by_grade <- arrange(loan_grouped_by_grade,desc(Ratio_of_default_to_paidoff))
@@ -369,7 +385,7 @@ loan_grouped_by_subgrade <- loan_grouped_by_subgrade[,c(2,1,3)] # Reorder column
 loan_grouped_by_subgrade <- spread(loan_grouped_by_subgrade, Loan_status, Count) #Use spread to convert to wide format to calculate ratio
 
 #Add a ratio column (%), higher ration implies that subgrade historically has higher chance of default
-loan_grouped_by_subgrade$Ratio_of_default_to_paidoff <- round(100 * loan_grouped_by_subgrade$`Charged Off`/loan_grouped_by_subgrade$`Fully Paid`,2)
+loan_grouped_by_subgrade$Ratio_of_default_to_paidoff <- round(100 * loan_grouped_by_subgrade$`Charged Off`/(loan_grouped_by_subgrade$`Fully Paid`+loan_grouped_by_subgrade$`Charged Off`),2)
 
 #Sort the loan data grouped by subgrade in descending order of default to paid off ratio
 loan_grouped_by_subgrade <- arrange(loan_grouped_by_subgrade,desc(Ratio_of_default_to_paidoff))
@@ -379,7 +395,6 @@ loan_grouped_by_subgrade <- arrange(loan_grouped_by_subgrade,desc(Ratio_of_defau
 #It is evident that LC has already done the due diligence and classified the members/loans
 # on grades and subgrades for a reason. The better the grade (A, B etc.), the higher is the
 # ratio of pay-off's....the lower grades (F, E etc.) have a much higher "Default" rate.
-
 # Lets create a plot of this data to make it abundantly clear
 
 #Effect of grade on loan status
@@ -389,7 +404,7 @@ loan_grouped_by_grade_long <- melt(loan_grouped_by_grade)
 #Remove rows other than "Ratio_of_default_to_paidoff"
 loan_grouped_by_grade_long <- filter(loan_grouped_by_grade_long,variable == "Ratio_of_default_to_paidoff")
 
-#PLOT
+#PLOT (grade)
 ggplot(loan_grouped_by_grade_long, aes(x = factor(Grade), y = value,fill=variable)) +
   geom_bar(stat='identity',alpha = 0.7, position = "dodge")+
   xlab("Grade") +ylab("Count") +labs(fill = 'Ratio of Default to PaidOff') 
@@ -400,27 +415,90 @@ loan_grouped_by_subgrade_long <- melt(loan_grouped_by_subgrade)
 #Remove rows other than "Ratio_of_default_to_paidoff"
 loan_grouped_by_subgrade_long <- filter(loan_grouped_by_subgrade_long,variable == "Ratio_of_default_to_paidoff")
 
-#PLOT
+#PLOT (subgrade)
 ggplot(loan_grouped_by_subgrade_long, aes(x = factor(Subgrade), y = value,fill=variable)) +
   geom_bar(stat='identity',alpha = 0.7, position = "dodge")+
   xlab("Subgrade") +ylab("Count") +labs(fill = 'Ratio of Default to PaidOff') 
 
+#*****
+# HENCE, WE CAN SAFELY SAY THAT HIGHER THE GRADES (E, F ETC.) SIGNALS A HIGHER RISK OF DEFAULT
+# WITHIN A GRADE, a higher subgrade (such as D5 has a higher risk of default than D1, with very
+# few exceptions
+#*****
 
 
-#Histogram plots showing the number of loans for each grade, status and credit age
-ggplot(data = loan_data_final, aes(
-  x = factor(grade),
-  fill = factor(credit_history_buckets)
-)) +
-  geom_bar(alpha = 0.7, position = "dodge")+ 
-  xlab("Loan Status") +ylab("Count") +labs(fill = 'Credit History Range') +facet_grid(.~loan_data_final$loan_status, scales = "free_x")
 
-#A Histogram plot showing the number of loans for each subgrade for each loan_status 
-ggplot(loan_data_final, aes(x = sub_grade)) + geom_histogram(binwidth = 1,
-                                                             fill = "black",
-                                                             ,
-                                                             stat = "count") +
-  facet_grid(. ~ loan_data_final$loan_status, scales = "free_x")
+#Lets continue segmented univariate analysis of other variables 
+
+# dti
+# Plotting a histogram of dti against frequency of loans wouldnt make much sense
+# - Because it will only give the count of records but exactly show the percentage of 
+# defaults against the number of loans, we need to perform steps similar to the above steps that
+# were done for grade, subgrade etc.
+
+#First we should bucket the dti values into different buckets
+# A low dti is a good indicator of low credit load (which could imply lower chance of default)
+
+loan_data_final$dti_buckets <-
+  ifelse(
+    loan_data_final$dti <= 5,
+    "<5%",
+    ifelse (
+      loan_data_final$dti > 5 & loan_data_final$dti <= 10,
+      "5-10 %",
+      ifelse (
+        loan_data_final$dti > 10 & loan_data_final$dti <= 15,
+        "10-15 %",
+        ifelse (
+          loan_data_final$dti > 15 & loan_data_final$dti <= 20,
+          "15-20 %",
+          ifelse (loan_data_final$dti > 20 &
+                    loan_data_final$dti <= 25, "20-25 %", "> 25 %")
+        )
+      )
+    )
+  )
+
+loan_grouped_by_dti <-  setNames(
+  aggregate(
+    loan_data_final$dti_buckets,
+    by = list(loan_data_final$loan_status, loan_data_final$dti_buckets),
+    FUN = length
+  ),
+  c("Loan_status", "Dti_buckets","Count")
+)
+
+loan_grouped_by_dti <- loan_grouped_by_dti[,c(2,1,3)] # Reorder columns to ensure sub-grade is the first column
+
+#We can see that the number of loans with dt > 25% is very less (600 out of ~3800, <2 %)
+
+loan_grouped_by_dti <- spread(loan_grouped_by_dti, Loan_status, Count) #Use spread to convert to wide format to calculate ratio
+
+loan_grouped_by_dti$Ratio_of_default_to_paidoff <- round(100 * loan_grouped_by_dti$`Charged Off`/(loan_grouped_by_dti$`Fully Paid`+loan_grouped_by_dti$`Charged Off`),2)
+
+#Sort the loan data grouped by grade in descending order of default to paid off ratio
+loan_grouped_by_dti_long <- arrange(loan_grouped_by_dti,desc(Ratio_of_default_to_paidoff))
+
+#Effect of dti on loan status
+
+#Convert to long format (to help with plotting) using melt function of reshape2 package
+loan_grouped_by_dti_long <- melt(loan_grouped_by_dti)
+#Remove rows other than "Ratio_of_default_to_paidoff"
+loan_grouped_by_dti_long <- filter(loan_grouped_by_dti_long,variable == "Ratio_of_default_to_paidoff")
+
+#sort desc by value
+loan_grouped_by_dti_long <- arrange(loan_grouped_by_dti_long, desc(value))
+
+#PLOT (grade)
+ggplot(loan_grouped_by_dti_long, aes(x = factor(Dti_buckets), y = value,fill=variable)) +
+  geom_bar(stat='identity',alpha = 0.7, position = "dodge")+
+  xlab("Grade") +ylab("Count") +labs(fill = 'Ratio of Default to PaidOff') 
+
+#******INSIGHTS ON ANALYSIS OF DTI*************
+# It can be seen that higher the dti, higher is the ratio of default (except at the highest
+# bracket of 25+ %, but the number of loans at that level are way too small (<2% of total))
+# Hence, we can safely say that higher DTI signals a higher risk of default
+
 
 #----********-------------**********--END OF CASE STUDY------*****-------**************-------***
 
