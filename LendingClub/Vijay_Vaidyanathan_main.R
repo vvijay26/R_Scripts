@@ -34,7 +34,7 @@ loan_data <- temp[,which(unlist(lapply(temp, function(x)!all(is.na(x))))),with=F
 
 ncol(loan_data) #Down to 57 columns (manageable as compared to 111 column dataset)
 
-#write.csv(loan_data, file = "loan_data.csv",row.names = F)
+#write.csv(loan_data_final, file = "loan_data.csv",row.names = F)
 
 #Check for duplicate values
 sum(duplicated(loan_data$id))   #0 - hence no rows are duplicates.
@@ -320,6 +320,30 @@ loan_data_final$credit_history_buckets <-
     )
   )
 
+
+#Lets create few bar plots to analyze the effect of fields on loan_status (segmented univariate)
+
+ggplot(data = loan_data_final, aes(
+  x = factor(loan_status),
+  fill = factor(loan_data_final$sub_grade)
+)) +
+  geom_bar(alpha = 0.7, position = "dodge")+
+  xlab("Loan Status") +ylab("Count") +labs(fill = 'Sub-Grade')
+  
+#Histogram plots showing the number of loans for each grade, status and credit age
+ggplot(data = loan_data_final, aes(
+  x = factor(grade),
+  fill = factor(credit_history_buckets)
+)) +
+  geom_bar(alpha = 0.7, position = "dodge")+ 
+  xlab("Loan Status") +ylab("Count") +labs(fill = 'Credit History Range') +facet_grid(.~loan_data_final$loan_status, scales = "free_x")
+
+#A Histogram plot showing the number of loans for each subgrade for each loan_status 
+ggplot(loan_data_final, aes(x = sub_grade)) + geom_histogram(binwidth = 1,
+                                                             fill = "black",
+                                                             ,
+                                                             stat = "count") +
+  facet_grid(. ~ loan_data_final$loan_status, scales = "free_x")
 
 #----********-------------**********--END OF CASE STUDY------*****-------**************-------***
 
