@@ -389,12 +389,21 @@ loan_grouped_by_grade_long <- melt(loan_grouped_by_grade)
 #Remove rows other than "Ratio_of_default_to_paidoff"
 loan_grouped_by_grade_long <- filter(loan_grouped_by_grade_long,variable == "Ratio_of_default_to_paidoff")
 
-
+#PLOT
 ggplot(loan_grouped_by_grade_long, aes(x = factor(Grade), y = value,fill=variable)) +
   geom_bar(stat='identity',alpha = 0.7, position = "dodge")+
-  xlab("Timeslot") +ylab("Count") +labs(fill = 'Legend') 
+  xlab("Grade") +ylab("Count") +labs(fill = 'Ratio of Default to PaidOff') 
 
 #Effect of subgrade on loan status
+#Convert to long format (to help with plotting) using melt function of reshape2 package
+loan_grouped_by_subgrade_long <- melt(loan_grouped_by_subgrade)
+#Remove rows other than "Ratio_of_default_to_paidoff"
+loan_grouped_by_subgrade_long <- filter(loan_grouped_by_subgrade_long,variable == "Ratio_of_default_to_paidoff")
+
+#PLOT
+ggplot(loan_grouped_by_subgrade_long, aes(x = factor(Subgrade), y = value,fill=variable)) +
+  geom_bar(stat='identity',alpha = 0.7, position = "dodge")+
+  xlab("Subgrade") +ylab("Count") +labs(fill = 'Ratio of Default to PaidOff') 
 
 
 
