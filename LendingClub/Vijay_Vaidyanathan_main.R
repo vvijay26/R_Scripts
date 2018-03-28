@@ -329,7 +329,75 @@ ggplot(data = loan_data_final, aes(
 )) +
   geom_bar(alpha = 0.7, position = "dodge")+
   xlab("Loan Status") +ylab("Count") +labs(fill = 'Sub-Grade')
-  
+
+# Lets create a new "grouped by" dataset to understand the ratio of total loans "Fully Paid"
+# vs. "Charged Off". This will help us identify more percentage of defaults are under which specific 
+# grade
+
+loan_grouped_by_grade <-  setNames(
+  aggregate(
+    loan_data_final$grade,
+    by = list(loan_data_final$loan_status, loan_data_final$grade ),
+    FUN = length
+  ),
+  c("Loan_status", "Grade","Count")
+)
+
+loan_grouped_by_grade <- loan_grouped_by_grade[,c(2,1,3)] # Reorder columns to ensure grade is the first column
+
+loan_grouped_by_grade <- spread(loan_grouped_by_grade, Loan_status, Count) #Use spread to convert to wide format to calculate ratio
+
+#Add a ratio column (%), higher ration implies that grade historically has higher chance of default
+loan_grouped_by_grade$Ratio_of_default_to_paidoff <- round(100 * loan_grouped_by_grade$`Charged Off`/loan_grouped_by_grade$`Fully Paid`,2)
+
+#Sort the loan data grouped by grade in descending order of default to paid off ratio
+loan_grouped_by_grade <- arrange(loan_grouped_by_grade,desc(Ratio_of_default_to_paidoff))
+
+#Similarly for sub-grade  
+
+loan_grouped_by_subgrade <-  setNames(
+  aggregate(
+    loan_data_final$sub_grade,
+    by = list(loan_data_final$loan_status, loan_data_final$sub_grade),
+    FUN = length
+  ),
+  c("Loan_status", "Subgrade","Count")
+)
+
+loan_grouped_by_subgrade <- loan_grouped_by_subgrade[,c(2,1,3)] # Reorder columns to ensure sub-grade is the first column
+
+loan_grouped_by_subgrade <- spread(loan_grouped_by_subgrade, Loan_status, Count) #Use spread to convert to wide format to calculate ratio
+
+#Add a ratio column (%), higher ration implies that subgrade historically has higher chance of default
+loan_grouped_by_subgrade$Ratio_of_default_to_paidoff <- round(100 * loan_grouped_by_subgrade$`Charged Off`/loan_grouped_by_subgrade$`Fully Paid`,2)
+
+#Sort the loan data grouped by subgrade in descending order of default to paid off ratio
+loan_grouped_by_subgrade <- arrange(loan_grouped_by_subgrade,desc(Ratio_of_default_to_paidoff))
+
+#******INSIGHTS ON ANALYSIS OF GRADE and SUBGRADE*************
+
+#It is evident that LC has already done the due diligence and classified the members/loans
+# on grades and subgrades for a reason. The better the grade (A, B etc.), the higher is the
+# ratio of pay-off's....the lower grades (F, E etc.) have a much higher "Default" rate.
+
+# Lets create a plot of this data to make it abundantly clear
+
+#Effect of grade on loan status
+
+#Convert to long format (to help with plotting) using melt function of reshape2 package
+loan_grouped_by_grade_long <- melt(loan_grouped_by_grade)
+#Remove rows other than "Ratio_of_default_to_paidoff"
+loan_grouped_by_grade_long <- filter(loan_grouped_by_grade_long,variable == "Ratio_of_default_to_paidoff")
+
+
+ggplot(loan_grouped_by_grade_long, aes(x = factor(Grade), y = value,fill=variable)) +
+  geom_bar(stat='identity',alpha = 0.7, position = "dodge")+
+  xlab("Timeslot") +ylab("Count") +labs(fill = 'Legend') 
+
+#Effect of subgrade on loan status
+
+
+
 #Histogram plots showing the number of loans for each grade, status and credit age
 ggplot(data = loan_data_final, aes(
   x = factor(grade),
