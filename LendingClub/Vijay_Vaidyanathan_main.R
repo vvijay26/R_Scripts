@@ -665,8 +665,36 @@ loan_data_home_ownership_seg <-
 #         OWN               0.1489076
 #        RENT               0.1536255
 # ******* This data is not that conclusive, leading us to believe that this field does not
-# have significant impact on the eventual loan status (hence, we will ignore it)
+# have significant impact on whether the loan might default (hence, we will ignore it)
 
+# UNIVARIATE ANALYSIS CONT'D - HOME_OWNERSHIP STATUS
+
+#**** LETS SEE IF emp_length has any effect on loan_status
+loan_data_emp_length_seg <-
+  sqldf(
+    '  select emp_length,
+    avg(loan_binary_status)
+    from loan_data_final group by emp_length  '
+  )
+
+# *******  O U T P U T (INCONCLUSIVE -- length of employment does not seem to have
+# and impact on predicting a loan default) ******* #
+
+# emp_length            avg(loan_binary_status)
+# 1      1 year               0.1438940
+# 2   10+ years               0.1568096
+# 3     2 years               0.1321370
+# 4     3 years               0.1383350
+# 5     4 years               0.1382406
+# 6     5 years               0.1433939
+# 7     6 years               0.1416052
+# 8     7 years               0.1537113
+# 9     8 years               0.1414634
+# 10    9 years               0.1288744
+# 11   < 1 year               0.1417480
+# 12        n/a               0.2207164
+# ******* This data is not that conclusive, leading us to believe that this field does not
+# have significant impact on whether the loan might default (hence, we will ignore it)
 
 
 #********BIVARIATE ANALYSIS OF NUMERIC FIELDS*************
