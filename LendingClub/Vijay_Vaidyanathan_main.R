@@ -430,7 +430,6 @@ ggplot(data = loan_data_final, aes(
 #A Histogram plot showing the number of loans for each subgrade for each loan_status
 # UNIVARIATE analysis
 ggplot(loan_data_final, aes(x = sub_grade)) + geom_histogram(binwidth = 1,
-                                                             fill = "black",
                                                              ,
                                                              stat = "count") +
   facet_grid(. ~ loan_data_final$loan_status, scales = "free_x")
@@ -462,7 +461,7 @@ loan_grouped_by_grade <-
   spread(loan_grouped_by_grade, Loan_status, Count) #Use spread to convert to wide format to calculate ratio
 
 #Add a ratio column (%), higher ration implies that grade historically has higher chance of default
-loan_grouped_by_grade$Ratio_of_default_to_paidoff <-
+loan_grouped_by_grade$Ratio_of_default_to_total <-
   round(
     100 * loan_grouped_by_grade$`Charged Off` / (
       loan_grouped_by_grade$`Fully Paid` + loan_grouped_by_grade$`Charged Off`
@@ -472,7 +471,7 @@ loan_grouped_by_grade$Ratio_of_default_to_paidoff <-
 
 #Sort the loan data grouped by grade in descending order of default to paid off ratio
 loan_grouped_by_grade <-
-  arrange(loan_grouped_by_grade, desc(Ratio_of_default_to_paidoff))
+  arrange(loan_grouped_by_grade, desc(Ratio_of_default_to_total))
 
 #Similarly for sub-grade
 
@@ -492,7 +491,7 @@ loan_grouped_by_subgrade <-
   spread(loan_grouped_by_subgrade, Loan_status, Count) #Use spread to convert to wide format to calculate ratio
 
 #Add a ratio column (%), higher ration implies that subgrade historically has higher chance of default
-loan_grouped_by_subgrade$Ratio_of_default_to_paidoff <-
+loan_grouped_by_subgrade$Ratio_of_default_to_total <-
   round(
     100 * loan_grouped_by_subgrade$`Charged Off` / (
       loan_grouped_by_subgrade$`Fully Paid` + loan_grouped_by_subgrade$`Charged Off`
@@ -502,7 +501,7 @@ loan_grouped_by_subgrade$Ratio_of_default_to_paidoff <-
 
 #Sort the loan data grouped by subgrade in descending order of default to paid off ratio
 loan_grouped_by_subgrade <-
-  arrange(loan_grouped_by_subgrade, desc(Ratio_of_default_to_paidoff))
+  arrange(loan_grouped_by_subgrade, desc(Ratio_of_default_to_total))
 
 #******INSIGHTS ON ANALYSIS OF GRADE and SUBGRADE*************
 
@@ -515,10 +514,10 @@ loan_grouped_by_subgrade <-
 
 #Convert to long format (to help with plotting) using melt function of reshape2 package
 loan_grouped_by_grade_long <- melt(loan_grouped_by_grade)
-#Remove rows other than "Ratio_of_default_to_paidoff"
+#Remove rows other than "Ratio_of_default_to_total"
 loan_grouped_by_grade_long <-
   filter(loan_grouped_by_grade_long,
-         variable == "Ratio_of_default_to_paidoff")
+         variable == "Ratio_of_default_to_total")
 
 #PLOT (grade)
 ggplot(loan_grouped_by_grade_long,
@@ -526,15 +525,15 @@ ggplot(loan_grouped_by_grade_long,
   geom_bar(stat = 'identity',
            alpha = 0.7,
            position = "dodge") +
-  xlab("Grade") + ylab("Count") + labs(fill = 'Ratio of Default to PaidOff')
+  xlab("Grade") + ylab("Count") + labs(fill = 'Ratio of Default to Total Loans')
 
 #Effect of subgrade on loan status
 #Convert to long format (to help with plotting) using melt function of reshape2 package
 loan_grouped_by_subgrade_long <- melt(loan_grouped_by_subgrade)
-#Remove rows other than "Ratio_of_default_to_paidoff"
+#Remove rows other than "Ratio_of_default_to_total"
 loan_grouped_by_subgrade_long <-
   filter(loan_grouped_by_subgrade_long,
-         variable == "Ratio_of_default_to_paidoff")
+         variable == "Ratio_of_default_to_total")
 
 #PLOT (subgrade)
 ggplot(loan_grouped_by_subgrade_long,
@@ -546,7 +545,7 @@ ggplot(loan_grouped_by_subgrade_long,
   geom_bar(stat = 'identity',
            alpha = 0.7,
            position = "dodge") +
-  xlab("Subgrade") + ylab("Count") + labs(fill = 'Ratio of Default to PaidOff')
+  xlab("Subgrade") + ylab("Count") + labs(fill = 'Ratio of Default to Total Loans')
 
 #*****
 # HENCE, WE CAN SAFELY SAY THAT HIGHER THE GRADES (E, F ETC.) SIGNALS A HIGHER RISK OF DEFAULT
@@ -604,7 +603,7 @@ loan_grouped_by_dti <-
 loan_grouped_by_dti <-
   spread(loan_grouped_by_dti, Loan_status, Count) #Use spread to convert to wide format to calculate ratio
 
-loan_grouped_by_dti$Ratio_of_default_to_paidoff <-
+loan_grouped_by_dti$Ratio_of_default_to_total <-
   round(
     100 * loan_grouped_by_dti$`Charged Off` / (
       loan_grouped_by_dti$`Fully Paid` + loan_grouped_by_dti$`Charged Off`
@@ -614,22 +613,22 @@ loan_grouped_by_dti$Ratio_of_default_to_paidoff <-
 
 #Sort the loan data grouped by grade in descending order of default to paid off ratio
 loan_grouped_by_dti_long <-
-  arrange(loan_grouped_by_dti, desc(Ratio_of_default_to_paidoff))
+  arrange(loan_grouped_by_dti, desc(Ratio_of_default_to_total))
 
 #Effect of dti on loan status
 
 #Convert to long format (to help with plotting) using melt function of reshape2 package
 loan_grouped_by_dti_long <- melt(loan_grouped_by_dti)
-#Remove rows other than "Ratio_of_default_to_paidoff"
+#Remove rows other than "Ratio_of_default_to_total"
 loan_grouped_by_dti_long <-
   filter(loan_grouped_by_dti_long,
-         variable == "Ratio_of_default_to_paidoff")
+         variable == "Ratio_of_default_to_total")
 
 #sort desc by value
 loan_grouped_by_dti_long <-
   arrange(loan_grouped_by_dti_long, desc(value))
 
-#PLOT (grade)
+#PLOT (DTI)
 ggplot(loan_grouped_by_dti_long,
        aes(
          x = factor(Dti_buckets),
@@ -639,7 +638,7 @@ ggplot(loan_grouped_by_dti_long,
   geom_bar(stat = 'identity',
            alpha = 0.7,
            position = "dodge") +
-  xlab("Grade") + ylab("Count") + labs(fill = 'Ratio of Default to PaidOff')
+  xlab("Debt to Income Ratio") + ylab("Count") + labs(fill = 'Ratio of Default to Total')
 
 #******INSIGHTS ON ANALYSIS OF DTI*************
 # It can be seen that higher the dti, higher is the ratio of default (except at the highest
