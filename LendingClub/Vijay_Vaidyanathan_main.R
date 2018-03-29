@@ -106,7 +106,10 @@ summary(loan_data$sub_grade) #no issues.
 # emp_length
 summary(loan_data$emp_length) #no issues. There are some with n/a, its not null, just not available.
 # home_ownership
-summary(loan_data$home_ownership) #no issues.
+summary(loan_data$home_ownership) #there are few none records, lets update to other.
+
+loan_data$home_ownership[loan_data$home_ownership == 'NONE'] <- 'OTHER'
+
 # annual_inc
 summary(loan$annual_inc) # Range of 4000 to 6 million...we can look at this more during univariate analysis.
 which(is.na(loan$annual_inc)) # none of the values are NA ,
@@ -643,6 +646,28 @@ ggplot(loan_grouped_by_dti_long,
 # bracket of 25+ %, but the number of loans at that level are way too small (<2% of total))
 # Hence, we can safely say that higher DTI signals a higher risk of default
 #**********************************************
+
+# UNIVARIATE ANALYSIS CONT'D - HOME_OWNERSHIP STATUS
+
+#**** LETS SEE IF home_ownership has any effect on loan_status
+loan_data_home_ownership_seg <-
+  sqldf(
+    '  select home_ownership,
+       avg(loan_binary_status)
+    from loan_data_final group by home_ownership  '
+  )
+
+# *******  O U T P U T ******* #
+
+#home_ownership     avg(loan_binary_status)
+#     MORTGAGE               0.1367135
+#       OTHER               0.1782178
+#         OWN               0.1489076
+#        RENT               0.1536255
+# ******* This data is not that conclusive, leading us to believe that this field does not
+# have significant impact on the eventual loan status (hence, we will ignore it)
+
+
 
 #********BIVARIATE ANALYSIS OF NUMERIC FIELDS*************
 # Now that univariate and segmented univariate analysis is complete for few fields, lets perform bivariate analysis
