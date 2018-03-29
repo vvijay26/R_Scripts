@@ -206,9 +206,6 @@ summary(loan_data)
 # tax_liens
 
 
-# I) Univariate Analysis
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
 #Lets do a summary of the dataframe and determine again to determine if there are any outliers
 # This might also give some inputs around need for derived metrics, if any.
 summary(loan_data)
@@ -224,7 +221,7 @@ summary(loan_data)
 # 8) Ordered categorical variable - pub_rec_bankruptcies seems to be an 
 #    interesting field and looks ok (no outliers)
 
-# Lets create few histograms of key variables and determine their trend (Univariate Analysis)
+# Lets create few plots of key variables and determine their trend
 
 # The primary objective is to understand the driving factors
 # behind loan default, i.e. the variables which are strong indicators of default.  
@@ -271,7 +268,7 @@ loan_data_temp$loan_binary_status <-
 # delinq_2yrs (higher the deliquency, probably higher chances of default)
 # inq_last_6mths ( higher inquires usually signal lower credit scores due to hard inquiries etc.)
 # mths_since_last_delinq (higher this period signals lower chance of default)
-# open_acc ( higher number of credit lines signals higher utilization of credit, thus higher chance of default)
+# open_acc ( higher number of credit lines signals more lenders trust this member, thus lower chance of default)
 # pub_rec ( derogatory records - such as missed payments etc. - lowers credit score)
 # revol_bal ( how much of credit is revolving - that is credit line - pending payments)
 # revol_util (how much of credit line is utilized, probably higher % is not good)
@@ -333,10 +330,18 @@ loan_data_final$credit_history_buckets <-
   )
 
 
-#Lets create few bar plots to analyze the effect of fields on loan_status (segmented univariate)
 
+#Lets create few bar plots to analyze the effect of fields on loan_status 
 
-#Histogram plots showing the number of loans for each grade, status and credit age
+# SEGMENTED UNIVARIATE - In the below few lines of R code, we analyze the trend of 
+# loan_status across different segments (grade, subgrade and dti).
+# We calculate the % defaults across the segment to categorize how the defaults vary across
+# various ->
+#  1. grades (segmented univariate of loan defaults on "grade" as the segment)
+#  2. subgrades (segmented univariate of loan defaults on "subgrade" as the segment)
+#  3. dti (segmented univariate of loan defaults on "dti" buckets as the segment)
+
+#Bar plot showing the number of loans for each grade, status and credit age
 ggplot(data = loan_data_final, aes(
   x = factor(grade),
   fill = factor(credit_history_buckets)
@@ -345,6 +350,7 @@ ggplot(data = loan_data_final, aes(
   xlab("Loan Status") +ylab("Count") +labs(fill = 'Credit History Range') +facet_grid(.~loan_data_final$loan_status, scales = "free_x")
 
 #A Histogram plot showing the number of loans for each subgrade for each loan_status 
+# UNIVARIATE analysis
 ggplot(loan_data_final, aes(x = sub_grade)) + geom_histogram(binwidth = 1,
                                                              fill = "black",
                                                              ,
@@ -438,10 +444,6 @@ ggplot(loan_grouped_by_subgrade_long, aes(x = factor(Subgrade), y = value,fill=v
 # few exceptions
 #*****
 
-
-
-#Lets continue segmented univariate analysis of other variables 
-
 # dti
 # Plotting a histogram of dti against frequency of loans wouldnt make much sense
 # - Because it will only give the count of records but exactly show the percentage of 
@@ -510,6 +512,51 @@ ggplot(loan_grouped_by_dti_long, aes(x = factor(Dti_buckets), y = value,fill=var
 # It can be seen that higher the dti, higher is the ratio of default (except at the highest
 # bracket of 25+ %, but the number of loans at that level are way too small (<2% of total))
 # Hence, we can safely say that higher DTI signals a higher risk of default
+#**********************************************
+
+#********BIVARIATE ANALYSIS OF NUMERIC FIELDS*************
+# Now that univariate and segmented univariate analysis is complete for few fields, lets perform bivariate analysis
+# We can use correlation and lattice plot to analyze the correlation of loan_binary_status
+# with rest of the quantitative variables (such as installment amount, annual_inc etc.)
+#***************************************
+
+# Lets move only the numeric variables into a new df (since cor can be done on numeric values only)
+
+loan_data_cor <- loan_data_final #Make copy of loan_data_final df to perform data manipulations for correlation analysis
+
+loan_data_cor$int_rate <- as.numeric(gsub(loan_data_final$int_rate,pattern = "%",replacement = "")) # Convert int_rate to numeric for correlation analysis with loan_status
+
+loan_data_cor$term <- as.numeric(gsub(loan_data_final$term,pattern = " months",replacement = "")) # Convert loan term to numeric for correlation analysis with loan_status
+
+loan_data_cor$annual_inc <- as.numeric(loan_data_final$annual_inc) # Convert annual_inc to numeric for correlation analysis with loan_status
+
+summary(loan_data_cor) # Check to see what all fields should be numeric and are not (those fields will need conversion).
+
+loan_data_cor <- loan_data_cor[sapply(loan_data_cor, is.numeric)] #Remove non-numeric columns from loan_data_cor
+
+#Rename column names in loan_data_cor df to reduce namesize and better plots (to prevent clutter)
+
+colnames(loan_data_cor) <- c('amt','term','int','inst','inc','dti','del','inq','lst_del','#acc','pub','r_bal','dt_is','stat','cr_yr','cr_age')
+ 
+library(lattice)
+z <- cor(loan_data_cor)
+levelplot(z)
+
+#Based on the analysis of the correlation lattice plot, the following can be inferred :-
+# loan_status which are "Defaulted" have 
+#positive correlation with the following ->
+# 1. term (% of defaults is high for 60 month loans as compared to 36 month loans)
+# 2. int (a higher interest rate signals a higher chance of default )
+#    and, 
+#negative correlation with the following ->
+# 3. open_acc (Higher the number of credit accounts, lower the chance of default)
+# 4. annual_inc (A higher annual income signals a lower default chance)
+# 5. earliest_cr_line (Earlier the ealiest credit line, i.e., greater the age of credit history,
+#    lower is the chance of default)
+
+
+
+
 
 
 #----********-------------**********--END OF CASE STUDY------*****-------**************-------***
