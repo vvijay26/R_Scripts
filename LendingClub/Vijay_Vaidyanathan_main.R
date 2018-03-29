@@ -70,6 +70,7 @@ loan_data$issue_year <-
 #Remove issue_d column as its no longer needed
 loan_data$issue_d <- NULL
 
+
 # Lets traverse each through each column and check for data issues and clean accordingly
 # id - 
 sum(is.na(loan_data$id),length(which(loan_data$id == ""))) #No issues
@@ -236,6 +237,17 @@ summary(loan_data)
 
 loan_data_temp <- filter(loan_data,loan_status == "Fully Paid" | loan_status == "Charged Off") #Removing "Current" Loans
 
+# To perform correlation analysis with lon_status, lets add a new column as follows :-
+# Value of 1 if status is Charged off
+# Value of 0 if status is Paid
+
+loan_data_temp$loan_binary_status <-
+  ifelse(
+    loan_data_temp$loan_status == "Fully Paid",
+    0,
+    1
+  )
+
 # Following fields are selected for analysis :- Based on analysis of public websites which have
 # data on how banks, p2p lends etc. along with info from the data dictionary
 
@@ -266,7 +278,7 @@ loan_data_temp <- filter(loan_data,loan_status == "Fully Paid" | loan_status == 
 # earliest_cr_line (higher age of credit history is usually a positive for credit score)
 # issue_year (derived column from issue_d, used to determine age of credit history from loan date)
 
-loan_data_final <- loan_data_temp[,c('funded_amnt','term','int_rate','installment','grade','sub_grade','emp_length','home_ownership','annual_inc','verification_status','loan_status','purpose','addr_state','dti','delinq_2yrs','inq_last_6mths','mths_since_last_delinq','open_acc','pub_rec','revol_bal','revol_util','earliest_cr_line','issue_year')]
+loan_data_final <- loan_data_temp[,c('funded_amnt','term','int_rate','installment','grade','sub_grade','emp_length','home_ownership','annual_inc','verification_status','loan_status','purpose','addr_state','dti','delinq_2yrs','inq_last_6mths','mths_since_last_delinq','open_acc','pub_rec','revol_bal','revol_util','earliest_cr_line','issue_year','loan_binary_status')]
 
 #Lets just extract the year from the earliest_cr_line field (since its having different formats
 # such as MMM-YY or Y-MMM etc., lets use regex to extract numbers, which will be the year)
