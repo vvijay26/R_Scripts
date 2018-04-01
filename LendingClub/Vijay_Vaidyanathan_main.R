@@ -5,8 +5,8 @@ rm(list = ls())
 #Include ggplot2 to create plots. These packages can be installed using
 # install.packages("ggplot2"), install.packages("chron") etc.
 library(stringr) #string manipulations
-library(dplyr) #string manipulations
 library(plyr) #string manipulations
+library(dplyr) #string manipulations
 library(ggplot2) #for easy plotting
 library(chron) #for time functions
 library(tidyr) #for gather
@@ -61,6 +61,7 @@ str(loan_data)
 # so we can analyze the data by months and years separately if required.
 
 #Split the Issue_d into Date and Time (Also convert YY to YYYY etc.)
+# The below steps are must faster than using paster, as.date etc.
 loan_data$issue_month <-
   str_split_fixed(loan_data$issue_d, "-", 2)[, 2]
 loan_data$issue_year <-
@@ -73,7 +74,8 @@ loan_data$issue_year <-
     paste("200", str_split_fixed(loan_data$issue_d, "-", 2)[, 1], sep =
             "")
   ))
-
+#Validate if looks ok
+summary(loan_data$issue_year)
 #Remove issue_d column as its no longer needed
 loan_data$issue_d <- NULL
 
@@ -424,7 +426,7 @@ ggplot(data = loan_data_final, aes(
   fill = factor(credit_history_buckets)
 )) +
   geom_bar(alpha = 0.7, position = "dodge") +
-  xlab("Loan Status") + ylab("Count") + labs(fill = 'Credit History Range') +
+  xlab("Grade") + ylab("Count") + labs(fill = 'Credit History Range') +
   facet_grid(. ~ loan_data_final$loan_status, scales = "free_x")
 
 #A Histogram plot showing the number of loans for each subgrade for each loan_status
@@ -781,6 +783,8 @@ levelplot(z)
 # 2.   subgrade         LC assigned loan subgrade  VERY HIGH   Within a grade, higher subgrade(4,5 etc.) signals higher chace of default
 # 3.   term             # of loan payments         HIGH        60 month loans have twice (~25%) the chance of default than 36 month loans(~11%)
 # 4.   int_rate         Interest rate of loan      HIGH        Increasing interest rate, increases the chance of default
+#                                                              (Well this makes sense, since its common in loan industry to charge
+#                                                              High interest rate for people with low/bad credit)
 # 5.   dti              Debt to inc ratio          HIGH        Increasing dti, increases the chance of default
 # 6.   pub_rec          # of Derorgatory remarks   HIGH        Increasing derogatory remarks, increase the chance of default  
 # 7.   open_acc         # of Credit lines open     MEDIUM      Lower the credit lines, higher the chance of default
