@@ -86,7 +86,7 @@ str(cars)
 
 # FACTORS with 2 levels.
 #=========================
-# fueltype
+# fueltype 
 levels(cars$fueltype)<-c(1,0) 
 cars$fueltype <- as.numeric(levels(cars$fueltype))[cars$fueltype]
 # aspiration
@@ -103,27 +103,47 @@ cars$enginelocation <- as.numeric(levels(cars$enginelocation))[cars$enginelocati
 str(cars)
 # FACTORS with more than 2 levels (dummy variables to be used for these)
 
-#carcompany
+#carcompany (22 levels)
 summary(factor(cars$carcompany))
 dummy_carcompany <- data.frame(model.matrix( ~carcompany, data = cars)) #Converting "carscompany" into dummies . 
-View(dummy_carcompany)#check the dummy_1 data frame
-dummy_carcompany <- dummy_carcompany[,-1] #This column should be removed from the newly created dummy_1 dataframe containing the dummy values for the variable "fusrnishingstatus". 
-# Combine the dummy variables to the main data set, after removing the original categorical "carscompany" column
-cars <- cbind(cars[,-13], dummy_1)
+dummy_carcompany <- dummy_carcompany[,-1] #This column should be removed from the newly created dummy_1 dataframe containing the dummy values for the variable "carscompany". 
+cars$carcompany <- NULL
+cars <- cbind(cars, dummy_carcompany)
 
+#Repeat the other commands to convert the following also to dummy variables.
 
+#symboling (6 levels)
+summary(factor(cars$symboling))
+dummy_symboling <- data.frame(model.matrix( ~symboling, data = cars))
+dummy_symboling <- dummy_symboling[,-1]
+cars$symboling <- NULL
+cars <- cbind(cars, dummy_symboling)
+#carbody (5 levels)
+summary(factor(cars$carbody))
+dummy_carbody <- data.frame(model.matrix( ~carbody, data = cars))
+dummy_carbody <- dummy_carbody[,-1]
+cars$carbody <- NULL
+cars <- cbind(cars, dummy_carbody)
+#drivewheel (3 levels)
+summary(factor(cars$drivewheel))
+dummy_drivewheel <- data.frame(model.matrix( ~drivewheel, data = cars))
+dummy_drivewheel <- dummy_drivewheel[,-1]
+cars$drivewheel <- NULL
+cars <- cbind(cars, dummy_drivewheel)
+#enginetype (7 levels)
+summary(factor(cars$enginetype))
+dummy_enginetype <- data.frame(model.matrix( ~enginetype, data = cars))
+dummy_enginetype <- dummy_enginetype[,-1]
+cars$enginetype <- NULL
+cars <- cbind(cars, dummy_enginetype)
+#cylindernumber (7 levels)
+summary(factor(cars$cylindernumber))
+dummy_cylindernumber <- data.frame(model.matrix( ~cylindernumber, data = cars))
+dummy_cylindernumber <- dummy_cylindernumber[,-1]
+cars$cylindernumber <- NULL
+cars <- cbind(cars, dummy_cylindernumber)
 
-#symboling
-#carbody
-#drivewheel
-#enginetype
-#cylindernumber
-
-
-View(housing_1)
-
-
-
-
-
+# At this point, we do a quick validation and see that there are 65 variables in the 
+# cars dataframe (which is correct, considering we have created dummy variables
+# and removed the orignal variables using which the dummies were created.)
 #EDA is complete.
