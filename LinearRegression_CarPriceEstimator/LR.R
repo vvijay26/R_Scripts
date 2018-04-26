@@ -23,6 +23,8 @@ cars <- read.csv("CarPrice_Assignment.csv",
                  stringsAsFactors = TRUE)
 str(cars)
 
+# Begin EDA
+#
 #carCompany (we need to split the carName into car company name and car name and covert the car
 # company name to factor
 cars$carcompany <-
@@ -79,6 +81,22 @@ cars$symboling <- as.factor(cars$symboling)
 
 #Lets validate the structure of the cars dataframe one more time.
 str(cars)
+# Now, lets see if there are any outliers in the numeric figures. We use the quantile function
+quantile(cars$wheelbase)
+quantile(cars$carlength)
+quantile(cars$carwidth)
+quantile(cars$carheight)
+quantile(cars$curbweight)
+quantile(cars$enginesize)
+quantile(cars$boreratio)
+quantile(cars$stroke)
+quantile(cars$compressionratio)
+quantile(cars$horsepower)
+quantile(cars$peakrpm)
+quantile(cars$citympg)
+quantile(cars$highwaympg)
+quantile(cars$price)
+# None of the values seem outliers, everything seems to be within range (as per our understanding of Cars)
 
 #=================
 # Since we need to perform regression analysis on these variables, the next step is to 
