@@ -176,8 +176,6 @@ model_1 <-lm(price~.,data=cars)
 summary(model_1)
 #######
 
-# Using stepAIC to perform elimination of variables.
-
 #4 variables seem totally insignificant due to singluaties (we will remove these) -
 # 1. enginetypeohcf
 # 2. cylindernumberthree
@@ -193,7 +191,10 @@ cars$fuelsystemidi <- NULL
 model_2 <-lm(price~.,data=cars)
 summary(model_2)
 
-# Now that the first model is ready. Lets use that in StepAIC function and
+
+# Using stepAIC to perform elimination of variables.
+
+# Now that the second model is ready. Lets use that in StepAIC function and
 # remove insignificant variables automatically.
 
 # Lets load the library 
@@ -244,7 +245,22 @@ model_4 <-lm(formula = price ~ carcompanybuick + drivewheelfwd + cylindernumbert
 summary(model_4) # Just keep these 5 variables, the R-squared & Adj.R.sq is ~67%]. 
 #Since there is not much difference from model_3, this model looks good for now, 
 
+# Lets use model_3 and try removing only those variables that have a p > 0.2
+
+model_5 <-lm(formula = price ~ carcompanybuick + carcompanysaab +drivewheelfwd + 
+               cylindernumbertwelve + stroke + citympg + symboling3,
+             data=cars)
+
+summary(model_5) # This model has an adj-R-squared of 66.89%, NOT better than model_4
+
+# As of now, the model_4 looks the best with the following predictors ->
+# 1.carcompanybuick
+# 2.drivewheelfwd 
+# 3.cylindernumbertwelve
+# 4.stroke
+# 5.citympg
 # Let's identify collinearity using VIF now.
+
 library(car)
 vif(model_4) # All the 5 variables have a VIF below 2, suggests no mluticollinearity,
 # hence, lets not remove any variables at the moment and try predicting the price and
@@ -259,4 +275,3 @@ rsquared <- cor(cars$price,cars$predicted_price)^2
 rsquared #(As expected, same as the R-Squared shown summary(model_4))
 
 # Final value of R-Squared is 67%. This looks like a satisfactory model.
-
