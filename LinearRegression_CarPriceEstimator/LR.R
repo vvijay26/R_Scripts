@@ -268,10 +268,49 @@ vif(model_4) # All the 5 variables have a VIF below 2, suggests no mluticollinea
 
 # Lets Test the model_4
 
-cars$predicted_price <- predict(model_4, cars)
-cor(cars$price,cars$predicted_price) 
+cars$predicted_price_model_4 <- predict(model_4, cars)
+cor(cars$price,cars$predicted_price_model_4) 
 # The correlation between actual price and predicted price looks satisfactory (82%)
-rsquared <- cor(cars$price,cars$predicted_price)^2
+rsquared <- cor(cars$price,cars$predicted_price_model_4)^2
 rsquared #(As expected, same as the R-Squared shown summary(model_4))
 
 # Final value of R-Squared is 67%. This looks like a satisfactory model.
+
+# Lets add few more cylinder parameters and see what happens. Lets add cylinders 4 and 6
+
+model_6 <-lm(formula = price ~ carcompanybuick + drivewheelfwd + cylindernumbertwelve
+             + cylindernumberfour + cylindernumbersix + stroke + citympg,
+             data=cars)
+
+summary(model_6) # [The R-squared & Adj.R.sq is ~75%].  We see good improvement.
+#Model_6 also indicates that stroke might be an insignificant parameter. Lets remove it.
+
+model_7 <-lm(formula = price ~ carcompanybuick + drivewheelfwd + cylindernumbertwelve
+             + cylindernumberfour + cylindernumbersix + citympg,
+             data=cars)
+
+summary(model_7) # So stroke can be removed, since The R-squared & Adj.R.sq is still ~75%
+
+# HENCE -> Model_7 looks good.
+
+vif(model_7) # This suggests to remove cylinders 4 and 6 as their vif > 2, lets see that once.
+
+model_8 <-lm(formula = price ~ carcompanybuick + drivewheelfwd + cylindernumbertwelve
+            + citympg,
+             data=cars)
+
+summary(model_8) # Not good -> The adj R-squared dropped to 66%. Hence, lets ignore model_8
+
+# Lets calculate the predicted price using model 7
+
+cars$predicted_price_model_7 <- predict(model_7, cars)
+cor(cars$price,cars$predicted_price_model_7) 
+# The correlation between actual price and predicted price looks satisfactory (82%)
+rsquared <- cor(cars$price,cars$predicted_price_model_7)^2
+rsquared #(As expected, same as the R-Squared shown summary(model_7))
+
+#### FINAL SUMMARY  ########
+
+summary(model_7)
+
+#####END OF CODE ###########
