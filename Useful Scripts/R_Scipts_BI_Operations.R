@@ -1,6 +1,6 @@
 #Module 6
 
-setwd("C:/pgdds/Course 1/Module 6/Superstore Sales Data")
+setwd("C:/Superstore Sales Data")
 
 getwd()
 
