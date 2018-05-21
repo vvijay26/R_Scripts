@@ -85,21 +85,68 @@ unique(empdata$Over18) # Only one value - "Y"
 empdata[,c("EmployeeCount","StandardHours","Over18")] <- NULL
 
 # Lets create some plots to visually analyze the data of the 3 merged files.
+# Lets plot how Attrition correlates with other categorical variables - 
+# Attrition              
+# BusinessTravel
+# Department
+# Education
+# EducationField
+# Gender                 
+# KobLevel
+# JobRole
+# MaritalStatus          
+# EnvironmentSatisfaction
+# JobSatisfaction
+# WorkLifeBalance        
+# JobInvolvement
+# PerformanceRating
+
 
 # Barcharts for categorical features with stacked Attrition information
-bar_theme1<- theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), 
+bartheme <- theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), 
                    legend.position="none")
 
 
-plot_grid(ggplot(empdata, aes(x=Gender,fill=Attrition))+ geom_bar(), 
-          ggplot(empdata, aes(x=BusinessTravel,fill=Attrition))+ geom_bar()+bar_theme1,
-          ggplot(empdata, aes(x=Department,fill=Attrition))+ geom_bar()+bar_theme1,
-          ggplot(empdata, aes(x=EducationField,fill=Attrition))+ geom_bar()+bar_theme1,
-          ggplot(empdata, aes(x=JobRole,fill=Attrition))+ geom_bar()+bar_theme1,
-          ggplot(empdata, aes(x=MaritalStatus,fill=Attrition))+ geom_bar()+bar_theme1,
+plot_grid(ggplot(empdata, aes(x=BusinessTravel,fill=Attrition))+ geom_bar()+bartheme, 
+          ggplot(empdata, aes(x=Department,fill=Attrition))+ geom_bar()+bartheme,
+          ggplot(empdata, aes(x=Education,fill=Attrition))+ geom_bar()+bartheme,
+          ggplot(empdata, aes(x=EducationField,fill=Attrition))+ geom_bar()+bartheme,
+          ggplot(empdata, aes(x=Gender,fill=Attrition))+ geom_bar()+bartheme,
+          ggplot(empdata, aes(x=JobLevel,fill=Attrition))+ geom_bar()+bartheme,
           align = "h")
 
+plot_grid(ggplot(empdata, aes(x=JobRole,fill=Attrition))+ geom_bar()+bartheme, 
+          ggplot(empdata, aes(x=MaritalStatus,fill=Attrition))+ geom_bar()+bartheme,
+          ggplot(empdata, aes(x=JobInvolvement,fill=Attrition))+ geom_bar()+bartheme,
+          ggplot(empdata, aes(x=PerformanceRating,fill=Attrition))+ geom_bar()+bartheme,
+          align = "h")
 
+plot_grid(ggplot(empdata, aes(x=EnvironmentSatisfaction,fill=Attrition))+ geom_bar()+bartheme,
+          ggplot(empdata, aes(x=JobSatisfaction,fill=Attrition))+ geom_bar()+bartheme,
+          ggplot(empdata, aes(x=WorkLifeBalance,fill=Attrition))+ geom_bar()+bartheme,
+          align = "h") # There are a few NA's in this data. Values for these need to be imputed.
+
+# As there are a few NA's in the data from emp_survey, lets analyze and impute/fix/delete them.
+length(which(is.na(empdata$EnvironmentSatisfaction))) # 25, A very small Percentage
+length(which(is.na(empdata$JobSatisfaction))) # 20, A very small Percentage
+length(which(is.na(empdata$WorkLifeBalance))) # 38, A very small Percentage
+
+# Since there are a lot of other attributes available for every employee, just a non-availabilty of 
+# few records does not warrant a complete delete. 
+
+# To determine what we need to impute these with, lets find the frequency of each -
+table(empdata$EnvironmentSatisfaction) # 3 has the highest frequency, hence we impute NA to 3.
+table(empdata$JobSatisfaction) # 3& 4  have almost same frequency, hence we impute NA to 3.
+table(empdata$WorkLifeBalance) # 3 has the highest frequency, hence we impute NA to 3.
+
+
+#Impute missing values to 3 as analyzed above.
+
+empdata$EnvironmentSatisfaction[which(is.na(empdata$EnvironmentSatisfaction))] <- 3
+
+empdata$JobSatisfaction[which(is.na(empdata$JobSatisfaction))] <- 3
+
+empdata$WorkLifeBalance[which(is.na(empdata$WorkLifeBalance))] <- 3
 
 # Need to scale continous variables - 
 # Age
@@ -180,6 +227,18 @@ empdata[,c("BusinessTravel","Department","Education",
 
 empdata <- cbind(empdata,emp_dummies)
 str(empdata) # 4410 observations of 46 variables.
+
+# Before, we merge the in-time and out-time data, lets analyze it 
+# for inconsistencies, missing data, outliers etc.
+
+# if a data is NA, it can be assumed that either it was a holiday (other than weekend)
+# or a leave taken by the employee. Lets default 
+# in-time and out-time to fixed values in such a case - 10 AM and 6 PM).
+
+# Also, lets reformat the in-time and out-time columns to just HH:MM, 
+# no point keeping seconds and date (since its already part of the column heading)
+
+#<><<><><<<>>>  TO BE DONE <><><><><><><><><><><>
 
 # Now, Lets merge the in-time and out-time data as well
 
