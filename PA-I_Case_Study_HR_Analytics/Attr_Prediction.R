@@ -17,6 +17,7 @@ library(caret)
 library(ggplot2)
 library(cowplot)
 library(caTools)
+library(chron) 
 
 # Loading the 5 files
 setwd('C:/pgdds/Course 3/Group CS/PA-I_Case_Study_HR_Analytics')
@@ -107,24 +108,32 @@ bartheme <- theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)
                    legend.position="none")
 
 
-plot_grid(ggplot(empdata, aes(x=BusinessTravel,fill=Attrition))+ geom_bar()+bartheme, 
-          ggplot(empdata, aes(x=Department,fill=Attrition))+ geom_bar()+bartheme,
-          ggplot(empdata, aes(x=Education,fill=Attrition))+ geom_bar()+bartheme,
-          ggplot(empdata, aes(x=EducationField,fill=Attrition))+ geom_bar()+bartheme,
-          ggplot(empdata, aes(x=Gender,fill=Attrition))+ geom_bar()+bartheme,
-          ggplot(empdata, aes(x=JobLevel,fill=Attrition))+ geom_bar()+bartheme,
-          align = "h")
+empdata_orig <- empdata # Keeping a backup of the file (before scaling/dummy etc..)
 
-plot_grid(ggplot(empdata, aes(x=JobRole,fill=Attrition))+ geom_bar()+bartheme, 
-          ggplot(empdata, aes(x=MaritalStatus,fill=Attrition))+ geom_bar()+bartheme,
-          ggplot(empdata, aes(x=JobInvolvement,fill=Attrition))+ geom_bar()+bartheme,
-          ggplot(empdata, aes(x=PerformanceRating,fill=Attrition))+ geom_bar()+bartheme,
+plot_grid(ggplot(empdata_orig, aes(x=Education,fill=Attrition))+ geom_bar(),
+          ggplot(empdata_orig, aes(x=BusinessTravel,fill=Attrition))+ geom_bar()+bartheme, 
+          ggplot(empdata_orig, aes(x=Department,fill=Attrition))+ geom_bar()+bartheme,
+          ggplot(empdata_orig, aes(x=EducationField,fill=Attrition))+ geom_bar()+bartheme,
+          ggplot(empdata_orig, aes(x=Gender,fill=Attrition))+ geom_bar()+bartheme,
+          ggplot(empdata_orig, aes(x=JobLevel,fill=Attrition))+ geom_bar()+bartheme,
           align = "h")
+# EducationField (Life Sciences and Medical seem to have higher Attritions). For rest, 
+# attrition seems to be evenly distributed.
 
-plot_grid(ggplot(empdata, aes(x=EnvironmentSatisfaction,fill=Attrition))+ geom_bar()+bartheme,
-          ggplot(empdata, aes(x=JobSatisfaction,fill=Attrition))+ geom_bar()+bartheme,
-          ggplot(empdata, aes(x=WorkLifeBalance,fill=Attrition))+ geom_bar()+bartheme,
+plot_grid(ggplot(empdata_orig, aes(x=MaritalStatus,fill=Attrition))+ geom_bar(),ggplot(empdata_orig, aes(x=JobRole,fill=Attrition))+ geom_bar()+bartheme, 
+          ggplot(empdata_orig, aes(x=JobInvolvement,fill=Attrition))+ geom_bar()+bartheme,
+          ggplot(empdata_orig, aes(x=PerformanceRating,fill=Attrition))+ geom_bar()+bartheme,
+          align = "h")
+# Lower Performance Rating seems to have higher Attrition %.
+
+plot_grid(ggplot(empdata_orig, aes(x=EnvironmentSatisfaction,fill=Attrition))+ geom_bar(),
+          ggplot(empdata_orig, aes(x=JobSatisfaction,fill=Attrition))+ geom_bar()+bartheme,
+          ggplot(empdata_orig, aes(x=WorkLifeBalance,fill=Attrition))+ geom_bar()+bartheme,
           align = "h") # There are a few NA's in this data. Values for these need to be imputed.
+# Environment and Job Satisfaction, 1 (low) seems to have higher % attrition than 2 (medium).
+# Which actually makes sense.
+
+#----
 
 # As there are a few NA's in the data from emp_survey, lets analyze and impute/fix/delete them.
 length(which(is.na(empdata$EnvironmentSatisfaction))) # 25, A very small Percentage
@@ -160,8 +169,8 @@ empdata$WorkLifeBalance[which(is.na(empdata$WorkLifeBalance))] <- 3
 # YearsSinceLastPromotion
 # YearsWithCurrManager
 
-empdata$Age<- scale(empdata$Age)
-empdata$Age<- scale(empdata$DistanceFromHome)
+empdata$Age <- scale(empdata$Age)
+empdata$DistanceFromHome <- scale(empdata$DistanceFromHome)
 empdata$MonthlyIncome <- scale(empdata$MonthlyIncome)
 empdata$NumCompaniesWorked <- scale(empdata$NumCompaniesWorked)
 empdata$PercentSalaryHike <- scale(empdata$PercentSalaryHike)
@@ -172,13 +181,13 @@ empdata$YearsSinceLastPromotion <- scale(empdata$YearsSinceLastPromotion)
 empdata$YearsWithCurrManager <- scale(empdata$YearsWithCurrManager)
 
 
-# Lets conver the factors with two levels to 1 and 0 first, then we will handle
+# Lets convert the factors with two levels to 1 and 0 first, then we will handle
 # factors with more than 2 levels using dummy variables concept!
 
 #Convert Attrition to 1 (Yes) and 0 (No)
 # Attrition
 unique(empdata$Attrition) # two values = Yes and No
-empdata$Attrition<- ifelse(empdata$Attrition=="Yes",1,0)
+empdata$Attrition<- ifelse(empdata$Attrition =="Yes",1,0)
 unique(empdata$Attrition) # two values = 1 (Yes) and 0 (No)
 
 # Gender
@@ -186,10 +195,6 @@ unique(empdata$Gender) # two values = Female and Male
 empdata$Gender<- ifelse(empdata$Gender=="Female",1,0)
 unique(empdata$Gender) # two values = 1 (Female) and 0 (Male)
 
-#
-unique(empdata$Attrition) # verified that there are only 2 levels
-empdata$Attrition<- ifelse(empdata$Attrition=="Yes",1,0)
-unique(empdata$Attrition) # two values = 1 (Yes) and 0 (No)
 
 # Need to create dummy variables for factor attributes with more than 2 levels.
 #
@@ -200,18 +205,27 @@ unique(empdata$Attrition) # two values = 1 (Yes) and 0 (No)
 # JobLevel
 # JobRole
 # MaritalStatus
+# ...AND....
+# EnvironmentSatisfaction
+# JobSatisfaction
+# WorkLifeBalance
+# ...AND....
+# JobInvolvement
+# PerformanceRating
 
 # Lets create a new dataframe and move the data for above columns into it.
 # This will enable to quickly use sapply and apply model.matrix function on these columns
 # in a single-go.
 empdata_chr <- empdata[,c("BusinessTravel","Department","Education",
                            "EducationField","JobLevel","JobRole",
-                           "MaritalStatus")]
+                           "MaritalStatus","EnvironmentSatisfaction",
+                          "JobSatisfaction","WorkLifeBalance",
+                          "JobInvolvement","PerformanceRating")]
 # Next step is to convert the columns in empdata_fact to factors, so that
 # model.matrix function can be applied on it to generate dummy variable identifiers!
 
 empdata_fact<- data.frame(sapply(empdata_chr, function(x) factor(x)))
-str(empdata_fact) # all have been converted to factors with upto 9 levels.
+str(empdata_fact) # all have been converted to factors with upto a max. of 9 levels.
 
 # Next step is to create dummy variables for these using model.matrix
 emp_dummies<- data.frame(sapply(empdata_fact, 
@@ -221,28 +235,176 @@ emp_dummies<- data.frame(sapply(empdata_fact,
 # Next step is to remove the original columns from the file that were converted to dummies
 empdata[,c("BusinessTravel","Department","Education",
                           "EducationField","JobLevel","JobRole",
-                          "MaritalStatus")] <- NULL
+                          "MaritalStatus","EnvironmentSatisfaction",
+                          "JobSatisfaction","WorkLifeBalance",
+                          "JobInvolvement","PerformanceRating")] <- NULL
 
 # Finally, lets merge the dummies data.frame with empdata
 
 empdata <- cbind(empdata,emp_dummies)
-str(empdata) # 4410 observations of 46 variables.
+str(empdata) # 4410 observations.
 
-# Before, we merge the in-time and out-time data, lets analyze it 
-# for inconsistencies, missing data, outliers etc.
+# Lets average the in-time and out-time records for each employee to determine
+# his or her average swipe in and swipe out times. We will merge this data with the empdata
+# data.frame. Otherwise it will be nearly impossible to perform logistic regression.
 
-# if a data is NA, it can be assumed that either it was a holiday (other than weekend)
-# or a leave taken by the employee. Lets default 
-# in-time and out-time to fixed values in such a case - 10 AM and 6 PM).
+#Convert char object to Posixct for date time manipulations.
+in_time_without_Emp <- data.frame(sapply(in_time[,2:262], 
+       function(x) as.POSIXlt(x, format = "%Y-%m-%d %H:%M:%S")))
+out_time_without_Emp <- data.frame(sapply(out_time[,2:262], 
+       function(x) as.POSIXlt(x, format = "%Y-%m-%d %H:%M:%S")))
 
-# Also, lets reformat the in-time and out-time columns to just HH:MM, 
-# no point keeping seconds and date (since its already part of the column heading)
+#Just keep the HH:MM:SS (As we are only concerned with the in-times). 
+in_time_without_Emp <- data.frame(lapply(in_time_without_Emp, 
+       function(x) times(strftime(x,"%H:%M:%S")))) 
+out_time_without_Emp <- data.frame(lapply(out_time_without_Emp, 
+       function(x) times(strftime(x,"%H:%M:%S"))))
+#Convert time to numeric for easier calculations
+in_time_without_Emp_numeric <- data.frame(lapply(in_time_without_Emp, 
+                                         function(x) as.numeric(x))) 
+out_time_without_Emp_numeric <- data.frame(lapply(out_time_without_Emp, 
+                                         function(x) as.numeric(x)))
+#
+in_emp_average <- rowMeans(in_time_without_Emp_numeric,na.rm = T)
+out_emp_average <- rowMeans(out_time_without_Emp_numeric,na.rm = T)
 
-#<><<><><<<>>>  TO BE DONE <><><><><><><><><><><>
+in_time_Emp_Average <- data.frame(cbind(in_time$EmployeeID,in_emp_average))
+out_time_Emp_Average <- data.frame(cbind(out_time$EmployeeID,out_emp_average))
+
+colnames(in_time_Emp_Average) <- c("EmployeeID","In_time_Average")
+colnames(out_time_Emp_Average) <- c("EmployeeID","Out_time_Average")
 
 # Now, Lets merge the in-time and out-time data as well
 
-empdata<- merge(empdata,in_time, by="EmployeeID", all = F)
-empdata<- merge(empdata,out_time, by="EmployeeID", all = F)
+empdata<- merge(empdata,in_time_Emp_Average, by="EmployeeID", all = F)
+empdata<- merge(empdata,out_time_Emp_Average, by="EmployeeID", all = F)
 
-str(empdata) # 551 columns (ensures that merging happend correctly.)
+str(empdata) # 48 columns (ensures that merging happend correctly.)
+
+#The intime and outtime are stored as numeric 
+#(0.25 means 1/4 day, i.e 06 hours since 12 AM, or 6 AM)
+#(0.75 means 3/4 day, i.e 18 hours since 12 AM, or 6 PM)
+
+# Lets scale the in-time and out-time as well (As they are continous variables)
+
+empdata$In_time_Average<- scale(empdata$In_time_Average)
+empdata$Out_time_Average<- scale(empdata$Out_time_Average)
+
+# Now, we are ready to perform Logistic Regression as EDA is complete.
+
+# Lets check the Attrition rate first 
+
+Attrition <- sum(empdata$Attrition)/nrow(empdata)
+Attrition # 16.12 % Attrition Rate.
+
+# Lets first split the file into train and test files.
+
+########################################################################
+# splitting the data between train and test
+set.seed(100)
+
+indices = sample.split(empdata$Attrition, SplitRatio = 0.7)
+
+train = empdata[indices,]
+
+test = empdata[!(indices),]
+
+########################################################################
+
+
+# First Model
+
+# Lets remove EmployeeID from the file before creating first model
+empdata$EmployeeID <- NULL
+
+model_1 = glm(Attrition ~ ., data = train, family = "binomial")
+summary(model_1) # AIC: 2129.1
+
+# Lets perform StepAIC and create Model_2
+
+model_2<- stepAIC(model_1, direction="both")
+
+summary(model_2)
+
+# Identify multicollinearity through VIF check.
+
+vif(model_2)
+
+# Lets create model_3 using parameters identified as significant from previous step
+
+model_3<- glm(formula = Attrition ~ MonthlyIncome+ YearsAtCompany+
+                DistanceFromHome+ EnvironmentSatisfaction.x2+
+                EnvironmentSatisfaction.x3+EnvironmentSatisfaction.x4+
+                JobInvolvement.x3+JobRole.xResearch.Scientist+
+                Out_time_Average+Department.xSales+
+                JobSatisfaction.x2+JobSatisfaction.x4+
+                NumCompaniesWorked+TotalWorkingYears+
+                WorkLifeBalance.x3+BusinessTravel.xTravel_Rarely+
+                Department.xResearch...Development+
+                JobSatisfaction.x3+WorkLifeBalance.x2+
+                WorkLifeBalance.x4+JobRole.xLaboratory.Technician+
+                JobRole.xResearch.Director+MaritalStatus.xSingle+
+                TrainingTimesLastYear+YearsWithCurrManager+
+                BusinessTravel.xTravel_Frequently+
+                EducationField.xOther+JobLevel.x2+
+                Education.x3+Education.x5+
+                MaritalStatus.xMarried+YearsSinceLastPromotion+
+                Age+Education.x4+
+                JobRole.xSales.Executive, family = "binomial", data = train) 
+
+summary(model_3) # Following variables have high p (> 0.1) - Lets remove these and create Model_4
+# EducationField.xOther
+# Education.x3
+# MaritalStatus.xMarried
+
+vif(model_3)  # None of them have a vif > 5, lets not exclude because of vif in this step.
+
+# Remove 3 variables identified as low significance from model_3 and create model_4
+
+model_4<- glm(formula = Attrition ~ MonthlyIncome+ YearsAtCompany+
+                DistanceFromHome+ EnvironmentSatisfaction.x2+
+                EnvironmentSatisfaction.x3+EnvironmentSatisfaction.x4+
+                JobInvolvement.x3+JobRole.xResearch.Scientist+
+                Out_time_Average+Department.xSales+
+                JobSatisfaction.x2+JobSatisfaction.x4+
+                NumCompaniesWorked+TotalWorkingYears+
+                WorkLifeBalance.x3+BusinessTravel.xTravel_Rarely+
+                Department.xResearch...Development+
+                JobSatisfaction.x3+WorkLifeBalance.x2+
+                WorkLifeBalance.x4+JobRole.xLaboratory.Technician+
+                JobRole.xResearch.Director+MaritalStatus.xSingle+
+                TrainingTimesLastYear+YearsWithCurrManager+
+                BusinessTravel.xTravel_Frequently
+                +JobLevel.x2
+                +Education.x5
+                +YearsSinceLastPromotion+
+                Age+Education.x4+
+                JobRole.xSales.Executive, family = "binomial", data = train) 
+
+summary(model_4) # Education.x5 and Education.x4 have low significance (> 0.1)
+vif (model_4) # None has a VIF > 5 so lets not remove anything because of VIF at this time.
+
+
+# Lets remove Education.x5 and Education.x4 and create model 5
+
+model_5<- glm(formula = Attrition ~ MonthlyIncome+ YearsAtCompany+
+                DistanceFromHome+ EnvironmentSatisfaction.x2+
+                EnvironmentSatisfaction.x3+EnvironmentSatisfaction.x4+
+                JobInvolvement.x3+JobRole.xResearch.Scientist+
+                Out_time_Average+Department.xSales+
+                JobSatisfaction.x2+JobSatisfaction.x4+
+                NumCompaniesWorked+TotalWorkingYears+
+                WorkLifeBalance.x3+BusinessTravel.xTravel_Rarely+
+                Department.xResearch...Development+
+                JobSatisfaction.x3+WorkLifeBalance.x2+
+                WorkLifeBalance.x4+JobRole.xLaboratory.Technician+
+                JobRole.xResearch.Director+MaritalStatus.xSingle+
+                TrainingTimesLastYear+YearsWithCurrManager+
+                BusinessTravel.xTravel_Frequently+
+                +JobLevel.x2+
+                YearsSinceLastPromotion+
+                Age+
+                JobRole.xSales.Executive, family = "binomial", data = train)
+
+summary(model_5)
+
