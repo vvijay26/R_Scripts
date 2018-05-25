@@ -259,36 +259,27 @@ in_time_without_Emp <- data.frame(lapply(in_time_without_Emp,
        function(x) times(strftime(x,"%H:%M:%S")))) 
 out_time_without_Emp <- data.frame(lapply(out_time_without_Emp, 
        function(x) times(strftime(x,"%H:%M:%S"))))
-#Convert time to numeric for easier calculations
-in_time_without_Emp_numeric <- data.frame(lapply(in_time_without_Emp, 
-                                         function(x) as.numeric(x))) 
-out_time_without_Emp_numeric <- data.frame(lapply(out_time_without_Emp, 
-                                         function(x) as.numeric(x)))
-#
-in_emp_average <- rowMeans(in_time_without_Emp_numeric,na.rm = T)
-out_emp_average <- rowMeans(out_time_without_Emp_numeric,na.rm = T)
 
-in_time_Emp_Average <- data.frame(cbind(in_time$EmployeeID,in_emp_average))
-out_time_Emp_Average <- data.frame(cbind(out_time$EmployeeID,out_emp_average))
+#replace NA to 0 for easier calculations
+in_time_update1 <- data.frame(lapply(in_time_without_Emp,  
+                                     function(x){out <- x; out[is.na(out)] <- 0; out})) 
+out_time_update1 <- data.frame(lapply(out_time_without_Emp, 
+                                      function(x){out <- x; out[is.na(out)] <- 0; out}))
 
-colnames(in_time_Emp_Average) <- c("EmployeeID","In_time_Average")
-colnames(out_time_Emp_Average) <- c("EmployeeID","Out_time_Average")
+# calculate difference in intime and outtime 
+intime_outtime_diff1 <-  (out_time_update1 - in_time_update1)*24 
 
-# Now, Lets merge the in-time and out-time data as well
+#Avg working hours of employee
+emp_average_hours <- rowMeans(intime_outtime_diff1,na.rm = T)
+Emp_Average <- data.frame(cbind(out_time[,1],emp_average_hours))
 
-empdata<- merge(empdata,in_time_Emp_Average, by="EmployeeID", all = F)
-empdata<- merge(empdata,out_time_Emp_Average, by="EmployeeID", all = F)
+colnames(Emp_Average) <- c("EmployeeID","Average_no_of_hours")
 
-str(empdata) # 48 columns (ensures that merging happend correctly.)
+# Now, Lets merge the Emp average data as well
 
-#The intime and outtime are stored as numeric 
-#(0.25 means 1/4 day, i.e 06 hours since 12 AM, or 6 AM)
-#(0.75 means 3/4 day, i.e 18 hours since 12 AM, or 6 PM)
+empdata<- merge(empdata,Emp_Average, by="EmployeeID", all = F)
 
-# Lets scale the in-time and out-time as well (As they are continous variables)
-
-empdata$In_time_Average<- scale(empdata$In_time_Average)
-empdata$Out_time_Average<- scale(empdata$Out_time_Average)
+str(empdata) # 47 columns (ensures that merging happend correctly.)
 
 # Now, we are ready to perform Logistic Regression as EDA is complete.
 
@@ -336,7 +327,7 @@ model_3<- glm(formula = Attrition ~ MonthlyIncome+ YearsAtCompany+
                 DistanceFromHome+ EnvironmentSatisfaction.x2+
                 EnvironmentSatisfaction.x3+EnvironmentSatisfaction.x4+
                 JobInvolvement.x3+JobRole.xResearch.Scientist+
-                Out_time_Average+Department.xSales+
+                Average_no_of_hours+Department.xSales+
                 JobSatisfaction.x2+JobSatisfaction.x4+
                 NumCompaniesWorked+TotalWorkingYears+
                 WorkLifeBalance.x3+BusinessTravel.xTravel_Rarely+
@@ -365,7 +356,7 @@ model_4<- glm(formula = Attrition ~ MonthlyIncome+ YearsAtCompany+
                 DistanceFromHome+ EnvironmentSatisfaction.x2+
                 EnvironmentSatisfaction.x3+EnvironmentSatisfaction.x4+
                 JobInvolvement.x3+JobRole.xResearch.Scientist+
-                Out_time_Average+Department.xSales+
+                Average_no_of_hours+Department.xSales+
                 JobSatisfaction.x2+JobSatisfaction.x4+
                 NumCompaniesWorked+TotalWorkingYears+
                 WorkLifeBalance.x3+BusinessTravel.xTravel_Rarely+
@@ -391,7 +382,7 @@ model_5<- glm(formula = Attrition ~ MonthlyIncome+ YearsAtCompany+
                 DistanceFromHome+ EnvironmentSatisfaction.x2+
                 EnvironmentSatisfaction.x3+EnvironmentSatisfaction.x4+
                 JobInvolvement.x3+JobRole.xResearch.Scientist+
-                Out_time_Average+Department.xSales+
+                Average_no_of_hours+Department.xSales+
                 JobSatisfaction.x2+JobSatisfaction.x4+
                 NumCompaniesWorked+TotalWorkingYears+
                 WorkLifeBalance.x3+BusinessTravel.xTravel_Rarely+
