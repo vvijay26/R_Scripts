@@ -2,6 +2,7 @@
 rm(list = ls())
 
 # Install and Load the required packages
+#install.packages("caret")
 #install.packages("MASS")
 #install.packages("car")
 #install.packages("e1071")
@@ -9,6 +10,7 @@ rm(list = ls())
 #install.packages("cowplot")
 #install.packages("GGally")
 #install.packages('caTools')
+
 
 library(MASS)
 library(car)
@@ -105,7 +107,7 @@ empdata[,c("EmployeeCount","StandardHours","Over18")] <- NULL
 
 # Barcharts for categorical features with stacked Attrition information
 bartheme <- theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), 
-                   legend.position="none")
+                  legend.position="none")
 
 
 empdata_orig <- empdata # Keeping a backup of the file (before scaling/dummy etc..)
@@ -217,8 +219,8 @@ unique(empdata$Gender) # two values = 1 (Female) and 0 (Male)
 # This will enable to quickly use sapply and apply model.matrix function on these columns
 # in a single-go.
 empdata_chr <- empdata[,c("BusinessTravel","Department","Education",
-                           "EducationField","JobLevel","JobRole",
-                           "MaritalStatus","EnvironmentSatisfaction",
+                          "EducationField","JobLevel","JobRole",
+                          "MaritalStatus","EnvironmentSatisfaction",
                           "JobSatisfaction","WorkLifeBalance",
                           "JobInvolvement","PerformanceRating")]
 # Next step is to convert the columns in empdata_fact to factors, so that
@@ -229,36 +231,35 @@ str(empdata_fact) # all have been converted to factors with upto a max. of 9 lev
 
 # Next step is to create dummy variables for these using model.matrix
 emp_dummies<- data.frame(sapply(empdata_fact, 
-                            function(x) data.frame(model.matrix(~x-1,data =empdata_fact))[,-1]))
+                                function(x) data.frame(model.matrix(~x-1,data =empdata_fact))[,-1]))
 
 
 # Next step is to remove the original columns from the file that were converted to dummies
 empdata[,c("BusinessTravel","Department","Education",
-                          "EducationField","JobLevel","JobRole",
-                          "MaritalStatus","EnvironmentSatisfaction",
-                          "JobSatisfaction","WorkLifeBalance",
-                          "JobInvolvement","PerformanceRating")] <- NULL
+           "EducationField","JobLevel","JobRole",
+           "MaritalStatus","EnvironmentSatisfaction",
+           "JobSatisfaction","WorkLifeBalance",
+           "JobInvolvement","PerformanceRating")] <- NULL
 
 # Finally, lets merge the dummies data.frame with empdata
 
 empdata <- cbind(empdata,emp_dummies)
 str(empdata) # 4410 observations.
 
-# Lets average the in-time and out-time records for each employee to determine
-# his or her average swipe in and swipe out times. We will merge this data with the empdata
-# data.frame. Otherwise it will be nearly impossible to perform logistic regression.
+# Lets calculate the avarage working hours of an employee by subtracting the Intime and outtime of an employee on a day.
+# Otherwise it will be nearly impossible to perform logistic regression.
 
 #Convert char object to Posixct for date time manipulations.
 in_time_without_Emp <- data.frame(sapply(in_time[,2:262], 
-       function(x) as.POSIXlt(x, format = "%Y-%m-%d %H:%M:%S")))
+                                         function(x) as.POSIXlt(x, format = "%Y-%m-%d %H:%M:%S")))
 out_time_without_Emp <- data.frame(sapply(out_time[,2:262], 
-       function(x) as.POSIXlt(x, format = "%Y-%m-%d %H:%M:%S")))
+                                          function(x) as.POSIXlt(x, format = "%Y-%m-%d %H:%M:%S")))
 
 #Just keep the HH:MM:SS (As we are only concerned with the in-times). 
 in_time_without_Emp <- data.frame(lapply(in_time_without_Emp, 
-       function(x) times(strftime(x,"%H:%M:%S")))) 
+                                         function(x) times(strftime(x,"%H:%M:%S")))) 
 out_time_without_Emp <- data.frame(lapply(out_time_without_Emp, 
-       function(x) times(strftime(x,"%H:%M:%S"))))
+                                          function(x) times(strftime(x,"%H:%M:%S"))))
 
 #replace NA to 0 for easier calculations
 in_time_update1 <- data.frame(lapply(in_time_without_Emp,  
@@ -266,20 +267,33 @@ in_time_update1 <- data.frame(lapply(in_time_without_Emp,
 out_time_update1 <- data.frame(lapply(out_time_without_Emp, 
                                       function(x){out <- x; out[is.na(out)] <- 0; out}))
 
+#The intime and outtime are stored as numeric 
+#(0.25 means 1/4 day, i.e 06 hours since 12 AM, or 6 AM)
+#(0.75 means 3/4 day, i.e 18 hours since 12 AM, or 6 PM)
 # calculate difference in intime and outtime 
+#multiply by 24 to get number of hours
 intime_outtime_diff1 <-  (out_time_update1 - in_time_update1)*24 
 
 #Avg working hours of employee
 emp_average_hours <- rowMeans(intime_outtime_diff1,na.rm = T)
 Emp_Average <- data.frame(cbind(out_time[,1],emp_average_hours))
 
+
+
 colnames(Emp_Average) <- c("EmployeeID","Average_no_of_hours")
+
+## Before we merge lets scale data 
+# Lets scale the in-time and out-time as well (As they are continous variables)
+
+Emp_Average$Average_no_of_hours<- scale(Emp_Average$Average_no_of_hours)
+
 
 # Now, Lets merge the Emp average data as well
 
 empdata<- merge(empdata,Emp_Average, by="EmployeeID", all = F)
 
-str(empdata) # 47 columns (ensures that merging happend correctly.)
+str(empdata) # 54 columns (ensures that merging happend correctly.)
+
 
 # Now, we are ready to perform Logistic Regression as EDA is complete.
 
@@ -366,9 +380,9 @@ model_4<- glm(formula = Attrition ~ MonthlyIncome+ YearsAtCompany+
                 JobRole.xResearch.Director+MaritalStatus.xSingle+
                 TrainingTimesLastYear+YearsWithCurrManager+
                 BusinessTravel.xTravel_Frequently
-                +JobLevel.x2
-                +Education.x5
-                +YearsSinceLastPromotion+
+              +JobLevel.x2
+              +Education.x5
+              +YearsSinceLastPromotion+
                 Age+Education.x4+
                 JobRole.xSales.Executive, family = "binomial", data = train) 
 
@@ -399,3 +413,327 @@ model_5<- glm(formula = Attrition ~ MonthlyIncome+ YearsAtCompany+
 
 summary(model_5)
 
+# Lets remove MonthlyIncome and DistanceFromHome and create model 6
+
+model_6<- glm(formula = Attrition ~ YearsAtCompany+
+                EnvironmentSatisfaction.x2+
+                EnvironmentSatisfaction.x3+EnvironmentSatisfaction.x4+
+                JobInvolvement.x3+JobRole.xResearch.Scientist+
+                Average_no_of_hours+Department.xSales+
+                JobSatisfaction.x2+JobSatisfaction.x4+
+                NumCompaniesWorked+TotalWorkingYears+
+                WorkLifeBalance.x3+BusinessTravel.xTravel_Rarely+
+                Department.xResearch...Development+
+                JobSatisfaction.x3+WorkLifeBalance.x2+
+                WorkLifeBalance.x4+JobRole.xLaboratory.Technician+
+                JobRole.xResearch.Director+MaritalStatus.xSingle+
+                TrainingTimesLastYear+YearsWithCurrManager+
+                BusinessTravel.xTravel_Frequently+
+                +JobLevel.x2+
+                YearsSinceLastPromotion+
+                Age+
+                JobRole.xSales.Executive, family = "binomial", data = train)
+
+summary(model_6)
+
+
+# Lets remove YearsAtCompany, JobInvolvement.x3 , JobRole.xLaboratory.Technician and JobLevel.x2  and create model 7
+
+model_7<- glm(formula = Attrition ~ EnvironmentSatisfaction.x2+
+                EnvironmentSatisfaction.x3+EnvironmentSatisfaction.x4+
+                JobRole.xResearch.Scientist+
+                Average_no_of_hours+Department.xSales+
+                JobSatisfaction.x2+JobSatisfaction.x4+
+                NumCompaniesWorked+TotalWorkingYears+
+                WorkLifeBalance.x3+BusinessTravel.xTravel_Rarely+
+                Department.xResearch...Development+
+                JobSatisfaction.x3+WorkLifeBalance.x2+
+                WorkLifeBalance.x4+
+                JobRole.xResearch.Director+MaritalStatus.xSingle+
+                TrainingTimesLastYear+YearsWithCurrManager+
+                BusinessTravel.xTravel_Frequently+
+                YearsSinceLastPromotion+
+                Age+
+                JobRole.xSales.Executive, family = "binomial", data = train)
+
+summary(model_7)
+
+# Lets remove JobRole.xResearch.Scientist and create model 8
+
+model_8<- glm(formula = Attrition ~ EnvironmentSatisfaction.x2+
+                EnvironmentSatisfaction.x3+EnvironmentSatisfaction.x4+
+                Average_no_of_hours+Department.xSales+
+                JobSatisfaction.x2+JobSatisfaction.x4+
+                NumCompaniesWorked+TotalWorkingYears+
+                WorkLifeBalance.x3+BusinessTravel.xTravel_Rarely+
+                Department.xResearch...Development+
+                JobSatisfaction.x3+WorkLifeBalance.x2+
+                WorkLifeBalance.x4+
+                JobRole.xResearch.Director+MaritalStatus.xSingle+
+                TrainingTimesLastYear+YearsWithCurrManager+
+                BusinessTravel.xTravel_Frequently+
+                YearsSinceLastPromotion+
+                Age+
+                JobRole.xSales.Executive, family = "binomial", data = train)
+
+summary(model_8)
+
+# Lets remove JobSatisfaction.x3 , JobRole.xResearch.Director, JobRole.xSales.Executive and create model 9
+
+model_9<- glm(formula = Attrition ~ EnvironmentSatisfaction.x2+
+                EnvironmentSatisfaction.x3+EnvironmentSatisfaction.x4+
+                Average_no_of_hours+Department.xSales+
+                JobSatisfaction.x2+JobSatisfaction.x4+
+                NumCompaniesWorked+TotalWorkingYears+
+                WorkLifeBalance.x3+BusinessTravel.xTravel_Rarely+
+                Department.xResearch...Development+
+                WorkLifeBalance.x2+
+                WorkLifeBalance.x4+
+                MaritalStatus.xSingle+
+                TrainingTimesLastYear+YearsWithCurrManager+
+                BusinessTravel.xTravel_Frequently+
+                YearsSinceLastPromotion+
+                Age+ family = "binomial", data = train)
+
+summary(model_9)
+
+# Lets remove WorkLifeBalance.x2 and create model 10
+
+model_10<- glm(formula = Attrition ~ EnvironmentSatisfaction.x2+
+                EnvironmentSatisfaction.x3+EnvironmentSatisfaction.x4+
+                Average_no_of_hours+Department.xSales+
+                JobSatisfaction.x2+JobSatisfaction.x4+
+                NumCompaniesWorked+TotalWorkingYears+
+                WorkLifeBalance.x3+BusinessTravel.xTravel_Rarely+
+                Department.xResearch...Development+
+                WorkLifeBalance.x4+
+                MaritalStatus.xSingle+
+                TrainingTimesLastYear+YearsWithCurrManager+
+                BusinessTravel.xTravel_Frequently+
+                YearsSinceLastPromotion+
+                Age+ family = "binomial", data = train)
+
+summary(model_10)
+
+# Lets remove JobSatisfaction.x2 and create model 11
+
+model_11<- glm(formula = Attrition ~ EnvironmentSatisfaction.x2+
+                EnvironmentSatisfaction.x3+EnvironmentSatisfaction.x4+
+                Average_no_of_hours+Department.xSales+
+                JobSatisfaction.x4+
+                NumCompaniesWorked+TotalWorkingYears+
+                WorkLifeBalance.x3+BusinessTravel.xTravel_Rarely+
+                Department.xResearch...Development+
+                WorkLifeBalance.x2+
+                MaritalStatus.xSingle+
+                TrainingTimesLastYear+YearsWithCurrManager+
+                BusinessTravel.xTravel_Frequently+
+                YearsSinceLastPromotion+
+                Age, family = "binomial", data = train)
+
+summary(model_11)
+
+
+# Lets remove WorkLifeBalance.x2 and create model 12
+
+model_12<- glm(formula = Attrition ~ EnvironmentSatisfaction.x2+
+                EnvironmentSatisfaction.x3+EnvironmentSatisfaction.x4+
+                Average_no_of_hours+Department.xSales+
+                JobSatisfaction.x4+
+                NumCompaniesWorked+TotalWorkingYears+
+                WorkLifeBalance.x3+BusinessTravel.xTravel_Rarely+
+                Department.xResearch...Development+
+                MaritalStatus.xSingle+
+                TrainingTimesLastYear+YearsWithCurrManager+
+                BusinessTravel.xTravel_Frequently+
+                YearsSinceLastPromotion+
+                Age, family = "binomial", data = train)
+
+summary(model_12)
+
+# Lets remove WorkLifeBalance.x3 , TrainingTimesLastYear create model 13
+
+model_13<- glm(formula = Attrition ~ EnvironmentSatisfaction.x2+
+                 EnvironmentSatisfaction.x3+EnvironmentSatisfaction.x4+
+                 Average_no_of_hours+Department.xSales+
+                 JobSatisfaction.x4+
+                 NumCompaniesWorked+TotalWorkingYears+
+                 BusinessTravel.xTravel_Rarely+
+                 Department.xResearch...Development+
+                 WorkLifeBalance.x2+
+                 MaritalStatus.xSingle+
+                 YearsWithCurrManager+
+                 BusinessTravel.xTravel_Frequently+
+                 YearsSinceLastPromotion+
+                 Age, family = "binomial", data = train)
+
+summary(model_13)
+
+# Lets remove WorkLifeBalance.x2 and create model 14
+
+model_14<- glm(formula = Attrition ~ EnvironmentSatisfaction.x2+
+                 EnvironmentSatisfaction.x3+EnvironmentSatisfaction.x4+
+                 Average_no_of_hours+Department.xSales+
+                 JobSatisfaction.x4+
+                 NumCompaniesWorked+TotalWorkingYears+
+                 BusinessTravel.xTravel_Rarely+
+                 Department.xResearch...Development+
+                 MaritalStatus.xSingle+
+                 YearsWithCurrManager+
+                 BusinessTravel.xTravel_Frequently+
+                 YearsSinceLastPromotion+
+                 Age, family = "binomial", data = train)
+
+summary(model_14)
+
+
+########################################################################
+# With 15 significant variables in the model
+
+final_model<- model_14
+
+#######################################################################
+
+### Model Evaluation
+
+### Test Data ####
+
+#predicted probabilities of Attrition 1 for test data
+
+test_pred = predict(final_model, type = "response", 
+                    newdata = test[,-1])
+
+
+# Let's see the summary 
+
+summary(test_pred)
+
+test$prob <- test_pred
+View(test)
+# Let's use the probability cutoff of 50%.
+
+test_pred_Attrition <- factor(ifelse(test_pred >= 0.50, "Yes", "No"))
+test_actual_Attrition <- factor(ifelse(test$Attrition==1,"Yes","No"))
+
+
+table(test_actual_Attrition,test_pred_Attrition)
+
+
+#######################################################################
+test_pred_Attrition <- factor(ifelse(test_pred >= 0.40, "Yes", "No"))
+
+test_conf <- confusionMatrix(test_pred_Attrition, test_actual_Attrition, positive = "Yes")
+test_conf
+#######################################################################
+
+#########################################################################################
+# Let's Choose the cutoff value. 
+# 
+
+# Let's find out the optimal probalility cutoff 
+
+perform_fn <- function(cutoff) 
+{
+  predicted_Attrition <- factor(ifelse(test_pred >= cutoff, "Yes", "No"))
+  conf <- confusionMatrix(predicted_Attrition, test_actual_Attrition, positive = "Yes")
+  acc <- conf$overall[1]
+  sens <- conf$byClass[1]
+  spec <- conf$byClass[2]
+  out <- t(as.matrix(c(sens, spec, acc))) 
+  colnames(out) <- c("sensitivity", "specificity", "accuracy")
+  return(out)
+}
+
+# Creating cutoff values from 0.003575 to 0.812100 for plotting and initiallizing a matrix of 100 X 3.
+
+# Summary of test probability
+
+summary(test_pred)
+
+s = seq(.01,.80,length=100)
+
+OUT = matrix(0,100,3)
+
+
+for(i in 1:100)
+{
+  OUT[i,] = perform_fn(s[i])
+} 
+
+
+plot(s, OUT[,1],xlab="Cutoff",ylab="Value",cex.lab=1.5,cex.axis=1.5,ylim=c(0,1),type="l",lwd=2,axes=FALSE,col=2)
+axis(1,seq(0,1,length=5),seq(0,1,length=5),cex.lab=1.5)
+axis(2,seq(0,1,length=5),seq(0,1,length=5),cex.lab=1.5)
+lines(s,OUT[,2],col="darkgreen",lwd=2)
+lines(s,OUT[,3],col=4,lwd=2)
+box()
+legend(0,.50,col=c(2,"darkgreen",4,"darkred"),lwd=c(2,2,2,2),c("Sensitivity","Specificity","Accuracy"))
+
+
+cutoff <- s[which(abs(OUT[,2]-OUT[,3])<0.01)]
+
+
+# Let's choose a cutoff value of 0.158 for final model
+
+test_cutoff_Attrition <- factor(ifelse(test_pred >=0.158, "Yes", "No"))
+
+conf_final <- confusionMatrix(test_cutoff_Attrition, test_actual_Attrition, positive = "Yes")
+
+acc <- conf_final$overall[1]
+
+sens <- conf_final$byClass[1]
+
+spec <- conf_final$byClass[2]
+
+acc
+
+sens
+
+spec
+
+View(test)
+##################################################################################################
+### KS -statistic - Test Data ######
+
+test_cutoff_Attrition <- ifelse(test_cutoff_Attrition=="Yes",1,0)
+test_actual_Attrition <- ifelse(test_actual_Attrition=="Yes",1,0)
+
+
+library(ROCR)
+#on testing  data
+pred_object_test<- prediction(test_cutoff_Attrition, test_actual_Attrition)
+
+performance_measures_test<- performance(pred_object_test, "tpr", "fpr")
+
+ks_table_test <- attr(performance_measures_test, "y.values")[[1]] - 
+  (attr(performance_measures_test, "x.values")[[1]])
+
+max(ks_table_test)
+
+
+####################################################################
+# Lift & Gain Chart 
+
+# plotting the lift chart
+
+# Loading dplyr package 
+require(dplyr)
+library(dplyr)
+
+lift <- function(labels , predicted_prob,groups=10) {
+  
+  if(is.factor(labels)) labels  <- as.integer(as.character(labels ))
+  if(is.factor(predicted_prob)) predicted_prob <- as.integer(as.character(predicted_prob))
+  helper = data.frame(cbind(labels , predicted_prob))
+  helper[,"bucket"] = ntile(-helper[,"predicted_prob"], groups)
+  gaintable = helper %>% group_by(bucket)  %>%
+    summarise_at(vars(labels ), funs(total = n(),
+                                     totalresp=sum(., na.rm = TRUE))) %>%
+    
+    mutate(Cumresp = cumsum(totalresp),
+           Gain=Cumresp/sum(totalresp)*100,
+           Cumlift=Gain/(bucket*(100/groups))) 
+  return(gaintable)
+}
+
+Attrition_decile = lift(test_actual_Attrition, test_pred, groups = 10)
