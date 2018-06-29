@@ -10,3 +10,4 @@ Data Analysis of publicly available datasets using R
 5. Superstore Sales Data	- Work Folder (Not a prokect)
 6. Uber	- EDA for estimating reason for delays/non-availability/car cancellations between Airport and City for Uber.
 7. Some reusable code snippets in Useful Scripts folder (Not a project).
+8. Handwritten digits recognition - SVM Linear and non linear implementation to determine handwritten digits with 95+% accuracy.
